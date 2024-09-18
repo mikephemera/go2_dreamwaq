@@ -64,6 +64,8 @@ def train(args):
     config_dir = task_registry.config_dir
     env_cfg_dict, train_cfg_dict = save_config(env_cfg, train_cfg, config_dir)
 
+    breakpoint()
+
     if WANDB:
         wandb.init(
             project="dreamwaq",
@@ -73,8 +75,10 @@ def train(args):
         wandb.tensorboard.patch(save=False, tensorboard_x=True)
         # set run name
         wandb.run.name = (
-            args.task + "_" + str(env_cfg_dict["seed"])
-        )  # a1_base / a1_waq + seed_num
+            args.task + "_" + str(env_cfg_dict["seed"]) + "_" + \
+            str(env_cfg_dict["control"]["stiffness"]["joint"]) + "_" \
+            + str(env_cfg_dict["control"]["damping"]["joint"])
+        )
         wandb.run.save()
 
     ppo_runner.learn(

@@ -38,8 +38,8 @@ class Go2RoughCfg(LeggedRobotCfg):
     class control(LeggedRobotCfg.control):
         # PD Drive parameters:
         control_type = "P"
-        stiffness = {"joint": 25.0}  # [N*m/rad] # checked
-        damping = {"joint": 0.6}  # [N*m*s/rad] # checked
+        stiffness = {"joint": 26.0} # 25  # [N*m/rad] # checked
+        damping = {"joint": 0.7} # 0.6 # [N*m*s/rad] # checked
         # action scale: target angle = actionScale * action + defaultAngle
         action_scale = 0.25
         # decimation: Number of control action updates @ sim DT per policy DT
@@ -117,7 +117,7 @@ class Go2RoughCfgPPO(LeggedRobotCfgPPO):
         ada_boot = False
         run_name = "default"
         experiment_name = "rough_go2"
-        max_iterations = 2500
+        max_iterations = 3000
 
 
 class Go2RoughBaseCfg(Go2RoughCfg):
