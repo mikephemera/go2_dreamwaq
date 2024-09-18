@@ -19,7 +19,7 @@ class Go2RoughCfg(LeggedRobotCfg):
         episode_length_s = 20  # episode length in seconds
 
     class init_state(LeggedRobotCfg.init_state):
-        pos = [0.0, 0.0, 0.42]  # x,y,z [m]
+        pos = [0.0, 0.0, 0.34]  # x,y,z [m]
         default_joint_angles = {  # = target angles [rad] when action = 0.0
             "FL_hip_joint": 0.1,  # [rad]
             "RL_hip_joint": 0.1,  # [rad]
@@ -117,6 +117,7 @@ class Go2RoughCfgPPO(LeggedRobotCfgPPO):
         ada_boot = False
         run_name = "default"
         experiment_name = "rough_go2"
+        max_iterations = 2500
 
 
 class Go2RoughBaseCfg(Go2RoughCfg):
