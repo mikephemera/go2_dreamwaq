@@ -5,6 +5,7 @@ Demonstration Code for Go2 Walking
 - https://github.com/Teddy-Liao/walk-these-ways-go2
 - https://github.com/abizovnuralem/go2_omniverse
 - https://isaac-sim.github.io/IsaacLab/source/setup/installation/binaries_installation.html
+- https://github.com/unitreerobotics/unitree_rl_gym
 
 
 ## TODO 
