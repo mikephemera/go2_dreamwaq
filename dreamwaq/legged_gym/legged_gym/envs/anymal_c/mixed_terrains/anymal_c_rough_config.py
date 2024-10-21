@@ -34,6 +34,8 @@ from legged_gym.envs.base.legged_robot_config import LeggedRobotCfg, LeggedRobot
 class AnymalCRoughCfg(LeggedRobotCfg):
     class env(LeggedRobotCfg.env):
         num_envs = 4096
+        num_observations = 48
+        num_privileged_obs = 190  # d(3) + h(187)
         num_actions = 12
 
     class terrain(LeggedRobotCfg.terrain):
@@ -92,6 +94,10 @@ class AnymalCRoughCfg(LeggedRobotCfg):
 
 class AnymalCRoughCfgPPO(LeggedRobotCfgPPO):
     class runner(LeggedRobotCfgPPO.runner):
+        obs_rms = True
+        privileged_obs_rms = False
+        # true_vel_rms = False
+        # ada_boot = False
         run_name = ""
         experiment_name = "rough_anymal_c"
         load_run = -1
