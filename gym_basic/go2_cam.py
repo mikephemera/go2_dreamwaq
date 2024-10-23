@@ -89,15 +89,15 @@ def create_egocentric_camera(env, actor_handle):
     poses = gym.get_actor_rigid_body_states(env, actor_handle, gymapi.STATE_POS)["pose"]
 
     # Get pose for the handles
-    d435_handle_pose = gymapi.Transform.from_buffer(poses[CAMERA_SENSOR_INDEX])
-    # print("pose: ", d435_handle_pose)
+    egocentric_cam_handle_pose = gymapi.Transform.from_buffer(poses[CAMERA_SENSOR_INDEX])
+    # print("pose: ", egocentric_cam_handle_pose)
 
-    # Offset d435 transforms to compute d435 locations
-    d435_point = d435_handle_pose.transform_point(camera_sensor_pose)
-    # print("d435 point: ", d435_point) == transition
+    # Offset egocentric_cam transforms to compute egocentric_cam locations
+    egocentric_cam_point = egocentric_cam_handle_pose.transform_point(camera_sensor_pose)
+    # print("egocentric_cam point: ", egocentric_cam_point) == transition
 
-    # Create transform from d435 location and d435 rotation
-    egocentric_cam_transform = gymapi.Transform(d435_point, d435_handle_pose.r)
+    # Create transform from egocentric_cam location and egocentric_cam rotation
+    egocentric_cam_transform = gymapi.Transform(egocentric_cam_point, egocentric_cam_handle_pose.r)
 
     cam_box_handle = gym.get_actor_rigid_body_handle(
         env, actor_handle, CAMERA_SENSOR_INDEX
@@ -196,13 +196,6 @@ def create_stairs(horizontal_scale, vertical_scale, step_width, step_height):
         step_width=step_width,
         step_height=step_height,
     )
-
-    # print(stair.terrain_name)
-    # print(stair.vertical_scale)
-    # print(stair.horizontal_scale)
-    # print(stair.width)
-    # print(stair.length)
-    # print(stair.height_field_raw.shape)
 
     heightfield = stair.height_field_raw
 
@@ -333,13 +326,11 @@ def create_robot_actor(sim, env, fixed=True, dof_print=False):
     # ACTOR
     pose = gymapi.Transform()
     pose.p = ROBOT_POS
-    # random roll deg -40
     # from_euler_zyx(x-roll, y, z)
     # random_rad = random.uniform(-1.5, 1.5) # 90deg == 1.57rad
     # random_rad = 0.6
     pose.r = gymapi.Quat.from_euler_zyx(0, 0, 0)  # (random_rad, 0, 0)
-
-    # pose.r = gymapi.Quat(0, 0, 0, 1) #-0.7071068, 0.7071068)
+    # pose.r = gymapi.Quat(0, 0, 0, 1)
     # necessary when loading an asset that is defined using z-up convention
     # into a simulation that uses y-up convention.
     robot_actor = gym.create_actor(env, robot_asset, pose, "actor", 0, 0)
@@ -394,20 +385,6 @@ def print_any_state(sim):
     print("base pose: ", base_pos)
     print("base quat: ", base_quat)
     print("dof pos: ", dof_pos)
-    # order: (same to viewer ordering)
-    # "LB_Scap_Joint", "LB_Hip_Joint", "LB_Knee_Joint",
-    # "LF_Scap_Joint", "LF_Hip_Joint", "LF_Knee_Joint",
-    # "RB_Scap_Joint", "RB_Hip_Joint", "RB_Knee_Joint",
-    # "RF_Scap_Joint", "RF_Hip_Joint", "RF_Knee_Joint",
-
-    # print(">>>when {} z base position,  Z: ".format(ROBOT_POS_Z), base_pos[:,2])
-    # knee 3,9,15,21 foot 4,10,16,22
-    # print(">>> RF foot ", net_contact_forces[22])
-    # print(">>> LB ", net_contact_forces[3])
-    # print(">>> LF ", net_contact_forces[8])
-    # print(">>> RB ", net_contact_forces[13])
-    # print(">>> RF ", net_contact_forces[18])
-
 
 def create_sim():
     # initialize gym
@@ -457,10 +434,10 @@ if __name__ == "__main__":
 
     asset_descriptors = [AssetDesc("robots/go2/urdf/go2.urdf", True)]
 
-    # 1. 시뮬레이션 객체 불러오기
+    # 시뮬레이션 객체 불러오기
     gym, sim = create_sim()
 
-    # 2. 지형 불러오기
+    # 지형 불러오기
     # TERRAIN
     # horizontal_scale = HORIZONTAL_SCALE
     # vertical_scale = VERTICAL_SCALE
@@ -498,13 +475,12 @@ if __name__ == "__main__":
     current_dof = 0
     gym.set_actor_dof_states(env, robot_actor, dof_states, gymapi.STATE_POS)
 
-    # 6. 카메라 센서정보를 얻기 위한 준비
-    # if not os.path.exists("egocentric_cam"):
-    #     os.mkdir("egocentric_cam")
+    if not os.path.exists("egocentric_cam"):
+        os.mkdir("egocentric_cam")
     frame_count = 0
     time = 0
     while not gym.query_viewer_has_closed(viewer):
-        # 7. 시뮬레이션 시작
+
         gym.simulate(sim)
         time += 1
         gym.fetch_results(sim, True)
@@ -512,7 +488,6 @@ if __name__ == "__main__":
         # ---------------------ANIMATION-----------------------
         speed = speeds[current_dof]
 
-        # 9. animate the dofs
         if anim_state == ANIM_SEEK_LOWER:
             dof_positions[current_dof] -= speed * DT
             if dof_positions[current_dof] <= lower_limits[current_dof]:
@@ -549,11 +524,10 @@ if __name__ == "__main__":
         color = gymapi.Vec3(1.0, 0.0, 0.0)
         gymutil.draw_line(p1, p2, color, gym, viewer, env)
 
-        # 11. 카메라 위치 표시
-        # gymutil.draw_lines(AXES_GEOM, gym, viewer, env, egocentric_cam_transform)
-        # gymutil.draw_lines(SPHERE_GEOM, gym, viewer, env, egocentric_cam_transform)
+        # 카메라 위치 표시
+        gymutil.draw_lines(AXES_GEOM, gym, viewer, env, egocentric_cam_transform)
+        gymutil.draw_lines(SPHERE_GEOM, gym, viewer, env, egocentric_cam_transform)
 
-        # 12. 시뮬레이션 스텝 실행
         gym.step_graphics(sim)
 
         print_any_state(sim)
@@ -570,13 +544,13 @@ if __name__ == "__main__":
         # plt.matshow(test_image)
         # plt.show()
 
-        # 14. 일정 타임 스텝에 이미지 저장
+        # 일정 타임 스텝에 이미지 저장
         if np.mod(frame_count, 30) == 0 and frame_count < 200:
             print("captured!")
             # The gym utility to write images to disk is recommended only for RGB images.
             rgb_filename = "egocentric_cam/rgb_frame%d.png" % (frame_count)
             gym.write_camera_image_to_file(
-                sim, env, d435_handle, gymapi.IMAGE_COLOR, rgb_filename
+                sim, env, egocentric_cam_handle, gymapi.IMAGE_COLOR, rgb_filename
             )
             # gym.write_camera_image_to_file(sim, env, env_cam, gymapi.IMAGE_COLOR, rgb_filename)
 
@@ -584,7 +558,7 @@ if __name__ == "__main__":
             # Here we retrieve a depth image, normalize it to be visible in an
             # output image and then write it to disk using Pillow
             depth_image = gym.get_camera_image(
-                sim, env, d435_handle, gymapi.IMAGE_DEPTH
+                sim, env, egocentric_cam_handle, gymapi.IMAGE_DEPTH
             )
             # depth_image = gym.get_camera_image(sim, env, env_cam, gymapi.IMAGE_DEPTH)
 
@@ -604,7 +578,6 @@ if __name__ == "__main__":
                 "egocentric_cam/depth_frame%d.jpg" % (frame_count)
             )
 
-        # 15. 뷰어 업데이트
         gym.draw_viewer(viewer, sim, True)
         # cam_trans = gym.get_viewer_camera_transform(viewer, env)
         # print(cam_trans.p) # viewer position

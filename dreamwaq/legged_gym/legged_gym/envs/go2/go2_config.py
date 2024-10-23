@@ -192,7 +192,7 @@ class Go2RoughBaseCfgPPO(Go2RoughCfgPPO):
         true_vel_rms = False
         ada_boot = False
         run_name = "base"
-        experiment_name = "rough_go2_oracle"
+        experiment_name = "rough_go2_base"
 
 
 class Go2RoughOracleCfg(Go2RoughBaseCfg):
@@ -219,7 +219,7 @@ class Go2RoughOracleCfgPPO(Go2RoughBaseCfgPPO):
         true_vel_rms = False
         ada_boot = False
         run_name = "oracle"
-        experiment_name = "rough_go2_base"
+        experiment_name = "rough_go2_oracle"
 
 
 class Go2RoughWaqCfg(Go2RoughBaseCfg):

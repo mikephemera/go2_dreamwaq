@@ -15,15 +15,15 @@ import torch
 
 def play(args):
     CENET = True if args.task.split("_")[-1] == "waq" else False
-    ESTNET = True if args.task.split("_")[-1] == "est" else False
+    # ESTNET = True if args.task.split("_")[-1] == "est" else False
 
     env_cfg, train_cfg = task_registry.get_cfgs(name=args.task)
     # override some parameters for testing
     env_cfg.env.num_envs = 2
     # [smooth slope, rough slope, stairs up, stairs down, discrete]
-    env_cfg.terrain.terrain_proportions = [0.0, 0.0, 0.0, 0.0, 1.0]
+    env_cfg.terrain.terrain_proportions = [0.0, 0.0, 0.0, 1.0, 0.0]
     env_cfg.terrain.num_rows = 10  # level
-    env_cfg.terrain.num_cols = 10  # type
+    env_cfg.terrain.num_cols = 1  # type
     env_cfg.terrain.curriculum = False
     env_cfg.terrain.max_init_terrain_level = 9  # level -1
     # freezing randomization
@@ -60,11 +60,11 @@ def play(args):
     # load estimator
     if CENET:
         cenet = ppo_runner.get_inference_cenet(device=env.device).to(env.device)
-    if ESTNET:
-        estnet = ppo_runner.get_inference_estnet(device=env.device).to(env.device)
+    # if ESTNET:
+    #     estnet = ppo_runner.get_inference_estnet(device=env.device).to(env.device)
 
     # logger setting
-    if CENET or ESTNET:
+    if CENET: #or ESTNET:
         logger = Custom_Logger(env.dt)
     else:
         logger = Logger(env.dt)
@@ -93,7 +93,7 @@ def play(args):
     if rms is not None:
         obs = (obs - obs_rms.mean) / torch.sqrt(obs_rms.var + 1e-8)
 
-    if CENET or ESTNET:
+    if CENET: # or ESTNET:
         obs_history = env.get_observation_history()
         if rms is not None:
             obs_history = (obs_history - obs_rms.mean) / torch.sqrt(obs_rms.var + 1e-8)
@@ -138,15 +138,15 @@ def play(args):
                 )
             actions = policy(actor_obs.detach())
 
-        elif ESTNET:
-
-            if TRUE_VEL:
-                actor_obs = torch.cat((obs.detach(), true_vel.detach()), dim=-1)
-            else:
-                est_vel = estnet(obs_history.detach())
-                actor_obs = torch.cat((obs.detach(), est_vel.detach()), dim=-1)
-
-            actions = policy(actor_obs.detach())
+        # elif ESTNET:
+        #
+        #     if TRUE_VEL:
+        #         actor_obs = torch.cat((obs.detach(), true_vel.detach()), dim=-1)
+        #     else:
+        #         est_vel = estnet(obs_history.detach())
+        #         actor_obs = torch.cat((obs.detach(), est_vel.detach()), dim=-1)
+        #
+        #     actions = policy(actor_obs.detach())
 
         else:
             actions = policy(obs.detach())
@@ -243,7 +243,7 @@ def play(args):
             img_idx += 1
 
         if i < stop_state_log:
-            if CENET or ESTNET:
+            if CENET: # or ESTNET:
                 logger.log_states(
                     {
                         "command_x": env.commands[robot_index, 0].item(),
