@@ -31,7 +31,10 @@ go2_walk
 - Training Log: https://wandb.ai/curieuxjy/dreamwaq
 
 
-https://github.com/user-attachments/assets/dc52a728-4099-4625-8688-c49ac8858327
+
+https://github.com/user-attachments/assets/949ee69e-cb3d-42aa-b09d-6da41f5bc931
+
+
 
 
 # [FYA] Part 3. `wtw`
