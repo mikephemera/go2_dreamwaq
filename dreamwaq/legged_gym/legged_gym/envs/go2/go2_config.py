@@ -18,7 +18,7 @@ class Go2RoughCfg(LeggedRobotCfg):
         episode_length_s = 20  # episode length in seconds
 
     class init_state(LeggedRobotCfg.init_state):
-        pos = [0.0, 0.0, 0.42]  # x,y,z [m]
+        pos = [0.0, 0.0, 0.34]  # x,y,z [m]
         default_joint_angles = {  # = target angles [rad] when action = 0.0
             'FL_hip_joint': 0.1,  # [rad]
             'RL_hip_joint': 0.1,  # [rad]
@@ -37,7 +37,7 @@ class Go2RoughCfg(LeggedRobotCfg):
         }
 
         # pos = [0.0, 0.0, 0.34]  # x,y,z [m]
-        # default_joint_angles = {  # = target angles [rad] when action = 0.0
+        # default_joint_angles = {  # = target angles [ra d] when action = 0.0
         #     "FL_hip_joint": 0.1,  # [rad]
         #     "RL_hip_joint": 0.1,  # [rad]
         #     "FR_hip_joint": -0.1,  # [rad]
@@ -122,7 +122,7 @@ class Go2RoughCfg(LeggedRobotCfg):
 
         only_positive_rewards = False  # if true negative total rewards are clipped at zero (avoids early termination problems)
         soft_dof_pos_limit = 0.9
-        base_height_target = 0.34 # 0.25
+        base_height_target = 0.3 # 0.25
 
         class scales(LeggedRobotCfg.rewards.scales):
             torques = -0.0002

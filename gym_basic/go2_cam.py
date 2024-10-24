@@ -23,6 +23,7 @@ from PIL import Image as im
 
 # Resources
 RESOURCE_ROOT = "../dreamwaq/legged_gym/resources"
+BASIC_ROOT = "../gym_basic"
 # Simulation Constants
 DT = 1.0 / 60.0
 
@@ -31,7 +32,7 @@ ENV_LOWER = gymapi.Vec3(-2.0, -2.0, 0.0)
 ENV_UPPER = gymapi.Vec3(2.0, 2.0, 4.0)
 
 # Robot Starting Position
-ROBOT_POS = gymapi.Vec3(0.0, 0.0, 0.42)
+ROBOT_POS = gymapi.Vec3(0.0, 0.0, 0.34)
 
 # Default Joint Angles
 DEFAULT_JOINT_ANGLES = {
@@ -74,77 +75,112 @@ ANIM_SEEK_DEFAULT = 3
 ANIM_FINISHED = 4
 
 # marks for camera
-AXES_GEOM = gymutil.AxesGeometry(0.1)
+AXES_GEOM = gymutil.AxesGeometry(0.5)
 # a wireframe sphere
 sphere_rot = gymapi.Quat.from_euler_zyx(0.5 * math.pi, 0, 0)
 sphere_pose = gymapi.Transform(r=sphere_rot)
 SPHERE_GEOM = gymutil.WireframeSphereGeometry(
-    0.02, 12, 12, sphere_pose, color=(1, 1, 0)
+    0.3, 12, 12, sphere_pose, color=(1, 1, 0)
 )
 
 
 def create_egocentric_camera(env, actor_handle):
-    camera_sensor_pose = gymapi.Vec3(0.0, 0.0, 0.0)
-    CAMERA_SENSOR_INDEX = 22
-    poses = gym.get_actor_rigid_body_states(env, actor_handle, gymapi.STATE_POS)["pose"]
+    """
+    Creates an egocentric camera attached to a specified actor within the Isaac Gym environment.
 
-    # Get pose for the handles
-    egocentric_cam_handle_pose = gymapi.Transform.from_buffer(poses[CAMERA_SENSOR_INDEX])
-    # print("pose: ", egocentric_cam_handle_pose)
+    Parameters:
+    - env (Env): The environment handle.
+    - sim (Sim): The simulation handle.
+    - viewer: The viewer handle for rendering (optional, used for debugging).
+    - actor_handle (int): The handle of the actor to attach the camera to.
 
-    # Offset egocentric_cam transforms to compute egocentric_cam locations
-    egocentric_cam_point = egocentric_cam_handle_pose.transform_point(camera_sensor_pose)
-    # print("egocentric_cam point: ", egocentric_cam_point) == transition
+    Returns:
+    - egocentric_cam_handle (int): The handle of the created camera sensor.
+    - egocentric_cam_transform (gymapi.Transform): The transform of the camera relative to the actor.
+    - cam_optical_frame (gymapi.Transform): The absolute transform of the camera in the simulation.
+    """
 
-    # Create transform from egocentric_cam location and egocentric_cam rotation
-    egocentric_cam_transform = gymapi.Transform(egocentric_cam_point, egocentric_cam_handle_pose.r)
+    # Define the index of the camera sensor's rigid body within the actor
+    CAMERA_SENSOR_INDEX = 28
 
-    cam_box_handle = gym.get_actor_rigid_body_handle(
-        env, actor_handle, CAMERA_SENSOR_INDEX
-    )
-    cam_box_state = gym.get_actor_rigid_body_states(
-        env, actor_handle, gymapi.STATE_POS
-    )[-1]
+    # Retrieve the rigid body states of the actor
+    rigid_body_states = gym.get_actor_rigid_body_states(env, actor_handle, gymapi.STATE_POS)
+    poses = rigid_body_states["pose"]
 
+    # Ensure the CAMERA_SENSOR_INDEX is within bounds
+    if CAMERA_SENSOR_INDEX >= len(poses):
+        raise IndexError(f"CAMERA_SENSOR_INDEX {CAMERA_SENSOR_INDEX} is out of bounds for the actor's rigid bodies.")
+
+    # Get the pose of the camera sensor's rigid body
+    cam_rigid_body_pose = gymapi.Transform.from_buffer(poses[CAMERA_SENSOR_INDEX])
+
+    # Define the local position offset for the camera sensor relative to its rigid body
+    camera_sensor_local_pos = gymapi.Vec3(0.0, 0.0, 0.0)
+    camera_sensor_world_pos = cam_rigid_body_pose.transform_point(camera_sensor_local_pos)
+
+    # Define the camera's transform relative to the actor's rigid body
+    egocentric_cam_transform = gymapi.Transform(camera_sensor_world_pos, cam_rigid_body_pose.r)
+
+    # Retrieve the handle for the camera's rigid body
+    cam_box_handle = gym.get_actor_rigid_body_handle(env, actor_handle, CAMERA_SENSOR_INDEX)
+
+    # Define camera properties
     camera_props = gymapi.CameraProperties()
-    # camera_props.horizontal_fov = 1.047197551 # 60 degree
     camera_props.width = 1280
     camera_props.height = 720
-    # camera_props.use_collision_geometry = True
+    # Uncomment and set the desired horizontal field of view if needed
+    # camera_props.horizontal_fov = 1.047197551  # 60 degrees
+
+    # Create the camera sensor
     egocentric_cam_handle = gym.create_camera_sensor(env, camera_props)
-    # env_cam = gym.create_camera_sensor(env, camera_props)
-    # camera_offset = gymapi.Transform() # actor 기준
-    # x = 0.45
-    # y = 0
-    # z = 0.57
-    camera_offset = gymapi.Vec3(
-        0, 0, 0
-    )  # egocentric_cam_transform.p # gymapi.Vec3(x, y, z)
-    camera_rotation = gymapi.Quat(
-        0, 0, 0.7071068, 0.7071068
-    )  # egocentric_cam_transform.r # [ x: -90, y: 90, z: 0 ] # gymapi.Quat.from_euler_zyx(0, -1.57, 0) # [ x: 0, y: -89.9557653, z: 0 ]
-    print(camera_offset, camera_rotation)
-    # name = 'd435'
-    # Depth Field of View (FOV):
-    # 87° × 58° (1.51844 × 1.01229)
-    # Depth output resolution:
-    # Up to 1280 × 720
-    # domain_randomization.py // graphics.py
+
+    # # ---------------------------------------------- OPTIONAL ----------------------------------------------
+    # # Define the camera's offset relative to the rigid body
+    # camera_offset = gymapi.Vec3(0.28945, 0, -0.046825)  # Adjust based on your specific requirements
+    #
+    # # Define the camera's rotation using Euler angles (ZYX convention)
+    # # For example, to rotate -90 degrees around the Y-axis (pitch)
+    # roll = 0
+    # pitch = -math.pi / 2  # -90 degrees
+    # yaw = 0
+    # camera_rotation = gymapi.Quat.from_euler_zyx(yaw, pitch, roll)
+    #
+    # print(f"Camera Offset: {camera_offset}, Camera Rotation: {camera_rotation}")
+    #
+    # # Define the optical frame transform for the camera
+    # cam_optical_frame = gymapi.Transform(camera_offset, camera_rotation)
+    #
+    # # Optional: Draw axes for debugging purposes
+    # # Ensure AXES_GEOM is defined appropriately in your environment
+    # # gymutil.draw_lines(AXES_GEOM, gym, viewer, env, cam_optical_frame)
+
+    # Attach the camera to the actor's rigid body with the defined transform
     gym.attach_camera_to_body(
         egocentric_cam_handle,
         env,
         cam_box_handle,
-        gymapi.Transform(camera_offset, camera_rotation),
-        gymapi.FOLLOW_TRANSFORM,
+        egocentric_cam_transform,
+        gymapi.FOLLOW_TRANSFORM
     )
-    return egocentric_cam_handle, egocentric_cam_transform
 
+    # Retrieve the camera's absolute transform in the simulation
+    # cam_absolute_transform = gym.get_camera_transform(sim, env, egocentric_cam_handle)
+
+    # Retrieve the camera's view and projection matrices for verification
+    # camera_view_matrix = gym.get_camera_view_matrix(sim, env, egocentric_cam_handle)
+    # camera_proj_matrix = gym.get_camera_proj_matrix(sim, env, egocentric_cam_handle)
+    #
+    # # Print matrices for debugging purposes
+    # print("Camera View Matrix:\n", camera_view_matrix)
+    # print("Camera Projection Matrix:\n", camera_proj_matrix)
+
+    return egocentric_cam_handle, egocentric_cam_transform # , cam_absolute_transform
 
 def create_ball(sim, env, fixed=False):
-    ball_urdf = "ball.urdf"
+    ball_urdf = os.path.join("ball.urdf")
     asset_options = gymapi.AssetOptions()
     asset_options.fix_base_link = fixed
-    ball_asset = gym.load_asset(sim, ball_urdf, asset_options)
+    ball_asset = gym.load_asset(sim, BASIC_ROOT, ball_urdf, asset_options)
     ball_pose = gymapi.Transform()
     ball_pose.p = gymapi.Vec3(0.3, 0, 0.1)
     ball_pose.r = gymapi.Quat(0, 0, 0, 1)
@@ -228,8 +264,6 @@ def create_viewer(sim):
         print("*** Failed to create viewer")
         quit()
     # position the camera
-    # viewer_pos = gymapi.Vec3(VIEW_POS_X, VIEW_POS_Y, VIEW_POS_Z)  # (2, -1.5, 3) # (17.2, 2.0, 16)
-    # cam_target = gymapi.Vec3(TARGET_POS_X, TARGET_POS_Y, TARGET_POS_Z)  # (5, -2.5, 13)
     gym.viewer_camera_look_at(viewer, None, VIEWER_POS, TARGET_POS)
     return viewer
 
@@ -328,9 +362,9 @@ def create_robot_actor(sim, env, fixed=True, dof_print=False):
     pose.p = ROBOT_POS
     # from_euler_zyx(x-roll, y, z)
     # random_rad = random.uniform(-1.5, 1.5) # 90deg == 1.57rad
-    # random_rad = 0.6
     pose.r = gymapi.Quat.from_euler_zyx(0, 0, 0)  # (random_rad, 0, 0)
     # pose.r = gymapi.Quat(0, 0, 0, 1)
+
     # necessary when loading an asset that is defined using z-up convention
     # into a simulation that uses y-up convention.
     robot_actor = gym.create_actor(env, robot_asset, pose, "actor", 0, 0)
@@ -352,7 +386,7 @@ def create_robot_actor(sim, env, fixed=True, dof_print=False):
     )
 
 
-def print_any_state(sim):
+def update_state(sim):
     root_state = gym.acquire_actor_root_state_tensor(sim)
     dof_state_tensor = gym.acquire_dof_state_tensor(sim)
     net_contact_forces = gym.acquire_net_contact_force_tensor(sim)
@@ -382,9 +416,9 @@ def print_any_state(sim):
     base_quat = root_states[0][3:7]
 
     ###############################################################
-    print("base pose: ", base_pos)
-    print("base quat: ", base_quat)
-    print("dof pos: ", dof_pos)
+    # print("base pose: ", base_pos)
+    # print("base quat: ", base_quat)
+    # print("dof pos: ", dof_pos)
 
 def create_sim():
     # initialize gym
@@ -439,23 +473,22 @@ if __name__ == "__main__":
 
     # 지형 불러오기
     # TERRAIN
+    create_plane(sim)
     # horizontal_scale = HORIZONTAL_SCALE
     # vertical_scale = VERTICAL_SCALE
     # step_width = STEP_WIDTH
     # step_height = STEP_HEIGHT
-    create_plane(sim)
     # create_stairs(horizontal_scale, vertical_scale, step_width, step_height)
     # create_pyramid_stairs(horizontal_scale, vertical_scale, step_width, step_height)
 
-    # 3. 창을 띄우는 뷰어 만들기
     # VIEWER
     viewer = create_viewer(sim)
 
-    # 4. 환경 만들기(여러 환경을 만들때 한개의 sim 안에 env들 여러개를 만들 수 있음)
+    # 환경 만들기(여러 환경을 만들때 한개의 sim 안에 env들 여러개를 만들 수 있음)
     num_per_row = 1
     env = gym.create_env(sim, ENV_LOWER, ENV_UPPER, num_per_row)
 
-    # 5. actor 만들기 (asset을 불러오고 난 후 env에 할당)
+    # actor 만들기 (asset을 불러오고 난 후 env에 할당)
     ball = create_ball(sim, env)
     (
         robot_actor,
@@ -467,7 +500,6 @@ if __name__ == "__main__":
         egocentric_cam_transform,
     ) = create_robot_actor(sim, env, dof_print=False, fixed=True)
 
-    # 6. 애니메이션을 위한 준비
     lower_limits = dof_props["lower"]
     upper_limits = dof_props["upper"]
     # initialize animation state
@@ -477,6 +509,7 @@ if __name__ == "__main__":
 
     if not os.path.exists("egocentric_cam"):
         os.mkdir("egocentric_cam")
+
     frame_count = 0
     time = 0
     while not gym.query_viewer_has_closed(viewer):
@@ -485,7 +518,6 @@ if __name__ == "__main__":
         time += 1
         gym.fetch_results(sim, True)
 
-        # ---------------------ANIMATION-----------------------
         speed = speeds[current_dof]
 
         if anim_state == ANIM_SEEK_LOWER:
@@ -502,20 +534,20 @@ if __name__ == "__main__":
             dof_positions[current_dof] -= speed * DT
             if (
                 dof_positions[current_dof] <= DEFAULTS[current_dof]
-            ):  # DEFAULTS[current_dof]:
+            ):
                 dof_positions[current_dof] = DEFAULTS[
                     current_dof
-                ]  # DEFAULTS[current_dof]
+                ]
                 anim_state = ANIM_FINISHED
         elif anim_state == ANIM_FINISHED:
-            dof_positions[current_dof] = DEFAULTS[current_dof]  # DEFAULTS[current_dof]
+            dof_positions[current_dof] = DEFAULTS[current_dof]
             current_dof = (current_dof + 1) % 12  # num_dofs
             anim_state = ANIM_SEEK_LOWER
 
         gym.clear_lines(viewer)
         gym.set_actor_dof_states(env, robot_actor, dof_states, gymapi.STATE_POS)
 
-        # 10. dof 시각화 get the DOF frame (origin and axis)
+        # get the DOF frame (origin and axis)
         dof_handle = gym.get_actor_dof_handle(env, robot_actor, current_dof)
         frame = gym.get_dof_frame(env, dof_handle)
         # draw a line from DOF origin along the DOF axis
@@ -530,23 +562,14 @@ if __name__ == "__main__":
 
         gym.step_graphics(sim)
 
-        print_any_state(sim)
+        update_state(sim)
 
-        if frame_count // 100 == 0:
-            print_any_state(sim)
-            frame_count = 0
-
-        # 13. 카메라 센서 실행
+        # 카메라 센서 실행
         gym.render_all_camera_sensors(sim)
-        # gym.start_access_image_tensors(sim)
-        # test_image = gym.get_camera_image(sim, env, camera_sensor, gymapi.IMAGE_DEPTH)
-        # print(np.shape(test_image))
-        # plt.matshow(test_image)
-        # plt.show()
 
         # 일정 타임 스텝에 이미지 저장
-        if np.mod(frame_count, 30) == 0 and frame_count < 200:
-            print("captured!")
+        if np.mod(frame_count, 100) == 0 and frame_count < 500:
+            print("captured!", frame_count)
             # The gym utility to write images to disk is recommended only for RGB images.
             rgb_filename = "egocentric_cam/rgb_frame%d.png" % (frame_count)
             gym.write_camera_image_to_file(
@@ -582,7 +605,7 @@ if __name__ == "__main__":
         # cam_trans = gym.get_viewer_camera_transform(viewer, env)
         # print(cam_trans.p) # viewer position
 
-        # 16. Wait for dt to elapse in real time.
+        # Wait for dt to elapse in real time.
         # This synchronizes the physics simulation with the rendering rate.
         gym.sync_frame_time(sim)
         frame_count += 1
