@@ -48,7 +48,7 @@ go2_walk/
 | Related | [Fall Recovery Task](https://arxiv.org/abs/2306.12712) |
 | Training Log | [WandB Dashboard](https://wandb.ai/curieuxjy/dreamwaq) |
 
-I independently implemented the DreamWaQ algorithm based on the paper. The core component, **Context-aided Estimator Network (CENet)**, has been carefully implemented and verified to work as described. Feel free to explore the code and experiment with it!
+I independently implemented the DreamWaQ algorithm based on the paper. The core component, [**Context-aided Estimator Network (CENet)**](./dreamwaq/rsl_rl/rsl_rl/vae/cenet.py), has been carefully implemented and verified to work as described. Feel free to explore the code and experiment with it!
 
 ![](./asset/method.png)
 
