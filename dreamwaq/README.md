@@ -70,14 +70,19 @@ https://github.com/curieuxjy/dreamwaq/assets/40867411/5dcea5c9-3ff3-469d-baa7-70
 > Please follow the steps below when starting via docker based on this repository.
 > A driver supporting CUDA 12.1 or higher must be installed.
 
-1. Download IsaacGym ver.4 [isaac-gym page](https://developer.nvidia.com/isaac-gym)
+1. Download [Isaac Gym - Ubuntu Linux 18.04 / 20.04 Preview 4](https://developer.nvidia.com/isaac-gym)
+You may also need to install [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+> NVIDIA Container Toolkit DOES NOT work with Docker Desktop., only work with [Docker Engine](https://docs.docker.com/engine/install/)... Then you may need add user to docker to solve permission issue without root. see [Linux post-installation steps for Docker Engine](https://docs.docker.com/engine/install/linux-postinstall/)
 2. Move the downloaded `IsaacGym_Preview_4_Package.tar.gz` file to `asset/IsaacGym_Preview_4_Package.tar.gz`
 3. Build docker with the following command:
    ```bash
+   cd /mnt/datafiles/Work-syncfree/go2_dreamwaq/dreamwaq
    docker build . -t dreamwaq/dreamwaq -f docker/Dockerfile  --build-arg UID=$(id -u) --build-arg GID=$(id -g)
    ```
+> The original docker file use [script](https://raw.githubusercontent.com/JeiKeiLim/my_term/main/run.sh) which has a bug on neovim install. I fixed it using dreamwaq/docker/run_fixed.sh.
 4. Run docker with the following command:
    ```bash
+   cd /mnt/datafiles/Work-syncfree/go2_dreamwaq/
    docker run -ti --privileged -e DISPLAY=:0 -e TERM=xterm-256color -v /tmp/.X11-unix:/tmp/.X11-unix:ro --network host -v $PWD/dreamwaq:/home/user/dreamwaq --gpus all dreamwaq/dreamwaq /usr/bin/zsh
    ```
 

@@ -23,7 +23,8 @@ ENV NVIDIA_VISIBLE_DEVICES ${NVIDIA_VISIBLE_DEVICES:-all}
 ENV NVIDIA_DRIVER_CAPABILITIES ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}graphics
 
 RUN sudo apt-get update && sudo apt-get -y install wget curl git
-RUN curl -s https://raw.githubusercontent.com/JeiKeiLim/my_term/main/run.sh | /bin/bash
+COPY --chown=user:user docker/run_fixed.sh /home/user/run_fixed.sh
+RUN chmod +x /home/user/run_fixed.sh && /home/user/run_fixed.sh
 
 RUN sudo apt-get update && sudo apt-get install -y zsh && \
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended && \
