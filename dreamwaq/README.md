@@ -18,12 +18,12 @@ https://github.com/curieuxjy/dreamwaq/assets/40867411/5dcea5c9-3ff3-469d-baa7-70
 
 ## Table of Contents
 
-| Section | Description |
-|---------|-------------|
-| [Start Manual](#start-manual) | Project environment setup and execution instructions |
-| [Main Code Structure](#main-code-structure) | Main code structure explanation |
-| [Result Graphs](#result-graphs) | Training result graphs |
-| [Result Motions](#result-motions) | Training result walking motion videos (gif per section) |
+| Section                                     | Description                                             |
+| ------------------------------------------- | ------------------------------------------------------- |
+| [Start Manual](#start-manual)               | Project environment setup and execution instructions    |
+| [Main Code Structure](#main-code-structure) | Main code structure explanation                         |
+| [Result Graphs](#result-graphs)             | Training result graphs                                  |
+| [Result Motions](#result-motions)           | Training result walking motion videos (gif per section) |
 
 ---
 
@@ -53,15 +53,15 @@ https://github.com/curieuxjy/dreamwaq/assets/40867411/5dcea5c9-3ff3-469d-baa7-70
 6. `AttributeError: module 'distutils' has no attribute 'version'`
    - `pip install setuptools==59.5.0`
    - (ref) https://github.com/pytorch/pytorch/issues/69894
-4. Start Rough terrain locomotion learning with A1 (refer to table below)
+7. Start Rough terrain locomotion learning with A1 (refer to table below)
 
 #### Task Options
 
-| Option | Config | Critic Obs | Actor Obs | Memo |
-|--------|--------|:----------:|:---------:|------|
-| `--task=a1_base` | A1RoughBaseCfg | 45 | 45 | observation without lin_vel |
-| `--task=a1_oracle` | A1RoughOracleCfg | 238 | 238 | true_lin_vel + privileged(d,h) |
-| `--task=a1_waq` | A1RoughBaseCfg | 238 | 64 | est_lin_vel + privileged / obs_history(timestep 5) |
+| Option             | Config           | Critic Obs | Actor Obs | Memo                                               |
+| ------------------ | ---------------- | :--------: | :-------: | -------------------------------------------------- |
+| `--task=a1_base`   | A1RoughBaseCfg   |     45     |    45     | observation without lin_vel                        |
+| `--task=a1_oracle` | A1RoughOracleCfg |    238     |    238    | true_lin_vel + privileged(d,h)                     |
+| `--task=a1_waq`    | A1RoughBaseCfg   |    238     |    64     | est_lin_vel + privileged / obs_history(timestep 5) |
 
 ---
 
@@ -71,49 +71,72 @@ https://github.com/curieuxjy/dreamwaq/assets/40867411/5dcea5c9-3ff3-469d-baa7-70
 > A driver supporting CUDA 12.1 or higher must be installed.
 
 1. Download [Isaac Gym - Ubuntu Linux 18.04 / 20.04 Preview 4](https://developer.nvidia.com/isaac-gym)
-You may also need to install [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
-> NVIDIA Container Toolkit DOES NOT work with Docker Desktop., only work with [Docker Engine](https://docs.docker.com/engine/install/)... Then you may need add user to docker to solve permission issue without root. see [Linux post-installation steps for Docker Engine](https://docs.docker.com/engine/install/linux-postinstall/)
+   You may also need to install [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+   > NVIDIA Container Toolkit DOES NOT work with Docker Desktop., only work with [Docker Engine](https://docs.docker.com/engine/install/)... Then you may need add user to docker to solve permission issue without root. see [Linux post-installation steps for Docker Engine](https://docs.docker.com/engine/install/linux-postinstall/)
 2. Move the downloaded `IsaacGym_Preview_4_Package.tar.gz` file to `asset/IsaacGym_Preview_4_Package.tar.gz`
 3. Build docker with the following command:
    ```bash
    cd /mnt/datafiles/Work-syncfree/go2_dreamwaq/dreamwaq
    docker build . -t dreamwaq/dreamwaq -f docker/Dockerfile  --build-arg UID=$(id -u) --build-arg GID=$(id -g)
    ```
-> The original docker file use [script](https://raw.githubusercontent.com/JeiKeiLim/my_term/main/run.sh) which has a bug on neovim install. I fixed it using dreamwaq/docker/run_fixed.sh.
+   > The original docker file use [script](https://raw.githubusercontent.com/JeiKeiLim/my_term/main/run.sh) which has a bug on neovim install. I fixed it using dreamwaq/docker/run_fixed.sh.
 4. Run docker with the following command:
+
    ```bash
    cd /mnt/datafiles/Work-syncfree/go2_dreamwaq/
-   docker run -ti --privileged -e DISPLAY=:0 -e TERM=xterm-256color -v /tmp/.X11-unix:/tmp/.X11-unix:ro --network host -v $PWD/dreamwaq:/home/user/dreamwaq --gpus all dreamwaq/dreamwaq /usr/bin/zsh
+   #check display before run
+   echo $DISPLAY
+   # create logs directory and run container with name and volume
+
+    docker run -ti --privileged \
+       -e DISPLAY=:1 \
+       -e TERM=xterm-256color \
+       -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
+       --network host \
+       -v $PWD/dreamwaq:/home/user/dreamwaq \
+       -v $PWD/dreamwaq_logs:/home/user/dreamwaq/legged_gym/logs \
+       --name dreamwaq-run \
+       --gpus all \
+       dreamwaq/dreamwaq /usr/bin/zsh
    ```
-> Docker env has another issue, PyTorch requires GCC 9+, but the system default gcc command points to GCC 8.4.0. Here is the solution:
-```bash 
-#1. Update alternatives configuration
-sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90
-sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 80
-sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 90
-sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 80
 
-#2. Choose GCC 9 as default
-sudo update-alternatives --config gcc
-sudo update-alternatives --config g++
+   <del>
+   > Docker env has another issue, PyTorch requires GCC 9+, but the system default gcc command points to GCC 8.4.0. Here is the solution:</del>
+   <del>
+   #1. Update alternatives configuration
+   sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90
+   sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 80
+   sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 90
+   sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 80
+   </del>
+   <del>
+   #2. Choose GCC 9 as default
+   sudo update-alternatives --config gcc
+   sudo update-alternatives --config g++
+   </del>
+   <del>
+   #3. verify
+   gcc --version
+   #It should show gcc version 9.x.x
+   </del>
+   <del>
+   #4. clear pytorch cache
+   rm -rf /home/user/.cache/torch_extensions/py38_cu121
+   rm -rf /home/user/.cache/torch_extensions/*
+   </del>
 
-#3. verify
-gcc --version
-#It should show gcc version 9.x.x
-
-#4. clear pytorch cache
-rm -rf /home/user/.cache/torch_extensions/py38_cu121
-rm -rf /home/user/.cache/torch_extensions/*
-```
 ---
 
 ### Command
+
 Execute within the container:
-```bash                                                                                                
-cd dreamwaq/legged_gym/legged_gym/scripts                                                                                      
-python3 train.py --task=a1_waq --headless 
+
+```bash
+cd dreamwaq/legged_gym/legged_gym/scripts
+python train.py --task=a1_waq --headless
 #Don't use visual in docker version... potential memcpy error.
 ```
+
 #### Training
 
 ```bash
@@ -128,13 +151,14 @@ python train.py --task=[TASK_NAME] --headless
 python play.py --task=[TASK_NAME] --load_run=[LOAD_FOLDER] --checkpoint=[CHECKPOINT_NUMBER]
 ```
 
-| Parameter | Description | Example |
-|-----------|-------------|---------|
-| `[LOAD_FOLDER]` | Folder name inside `legged_gym/logs/[task folder]` | `Sep04_14-24-54_waq` |
-| `[task folder]` | Task-specific log folder | `rough_a1/rough_a1_waq/rough_a1_est` |
-| `[CHECKPOINT_NUMBER]` | Number of **model_[NUMBER].pt** file | `250` |
+| Parameter             | Description                                        | Example                              |
+| --------------------- | -------------------------------------------------- | ------------------------------------ |
+| `[LOAD_FOLDER]`       | Folder name inside `legged_gym/logs/[task folder]` | `Sep04_14-24-54_waq`                 |
+| `[task folder]`       | Task-specific log folder                           | `rough_a1/rough_a1_waq/rough_a1_est` |
+| `[CHECKPOINT_NUMBER]` | Number of **model\_[NUMBER].pt** file              | `250`                                |
 
 **Complete command example:**
+
 ```bash
 python play.py --task=a1_waq --load_run=Sep04_14-24-54_waq --checkpoint=250
 ```
@@ -144,21 +168,21 @@ python play.py --task=a1_waq --load_run=Sep04_14-24-54_waq --checkpoint=250
 
 #### Cross-computer Inference
 
-If you want to inference a **model_[NUMBER].pt** file trained on a different computer:
+If you want to inference a **model\_[NUMBER].pt** file trained on a different computer:
 
-| Step | Computer A (Training) | Computer B (Inferencing) |
-|------|----------------------|--------------------------|
-| 1 | - | Create a new folder named `FOLDER_NAME` in `legged_gym/logs/[task folder]` |
-| 2 | Copy **model_[NUMBER].pt** | Paste to `FOLDER_NAME` |
-| 3 | - | Run `python play.py --task=[TASK_NAME] --load_run=[FOLDER_NAME] --checkpoint=[NUMBER]` |
+| Step | Computer A (Training)       | Computer B (Inferencing)                                                               |
+| ---- | --------------------------- | -------------------------------------------------------------------------------------- |
+| 1    | -                           | Create a new folder named `FOLDER_NAME` in `legged_gym/logs/[task folder]`             |
+| 2    | Copy **model\_[NUMBER].pt** | Paste to `FOLDER_NAME`                                                                 |
+| 3    | -                           | Run `python play.py --task=[TASK_NAME] --load_run=[FOLDER_NAME] --checkpoint=[NUMBER]` |
 
 ---
 
 ## Main Code Structure
 
 - Explanation of important files in the project code. Files related to the robot platform and algorithms used in the project were selected. Please refer to the description next to each file name.
-   - Robot platform used (environment): A1
-   - Learning algorithm used: PPO
+  - Robot platform used (environment): A1
+  - Learning algorithm used: PPO
 
 ```
 dreamwaq

@@ -5,6 +5,9 @@ LABEL maintainer="Jongkuk Lim <limjk@jmarple.ai>"
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asia/Seoul
 ENV TERM xterm-256color
+ENV PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+ENV PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn
+ENV PIP_DEFAULT_TIMEOUT=1000
 
 ARG UID=1000
 ARG GID=1000
@@ -38,13 +41,67 @@ RUN sudo chsh -s $(which zsh) $(whoami)
 # Place your environment here
 
 RUN sudo apt-get install -y python3-pip && pip3 install --upgrade pip
+# change python to be called as python, not python3
+RUN sudo apt-get install -y python-is-python3
 
-RUN python3 -m pip install tensorboard wandb opencv-python
-RUN sudo apt-get -y install mesa-common-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev vulkan-utils mesa-vulkan-drivers libegl1 gcc-8 g++-8 pigz
+# Pre-download wheels to cache
+RUN mkdir -p /tmp/wheels && \
+    cd /tmp/wheels && \
+    python3 -m pip download --default-timeout=2000 --retries=10 \
+        --extra-index-url https://download.pytorch.org/whl/cu121 \
+        tensorboard \
+        wandb \
+        opencv-python \
+        imageio \
+        ninja \
+        pillow \
+        scipy \
+        torch \
+        torchvision \
+        filelock \
+        sympy \
+        networkx \
+        jinja2 \
+        fsspec \
+        pyyaml \
+        numpy \
+        protobuf
+
+# Download NVIDIA CUDA runtime packages (large files)
+RUN cd /tmp/wheels && \
+    python3 -m pip download --default-timeout=2000 --retries=10 \
+        --extra-index-url https://download.pytorch.org/whl/cu121 \
+        nvidia-cuda-nvrtc-cu12 \
+        nvidia-cuda-runtime-cu12 \
+        nvidia-cuda-cupti-cu12
+
+# Download NVIDIA CUDA libraries (very large, especially cudnn)
+RUN cd /tmp/wheels && \
+    python3 -m pip download --default-timeout=2000 --retries=10 \
+        --extra-index-url https://download.pytorch.org/whl/cu121 \
+        nvidia-cudnn-cu12 \
+        nvidia-cublas-cu12 \
+        nvidia-cufft-cu12 \
+        nvidia-curand-cu12 \
+        nvidia-cusolver-cu12 \
+        nvidia-cusparse-cu12 \
+        nvidia-nccl-cu12 \
+        nvidia-nvtx-cu12 \
+        triton \
+        nvidia-nvjitlink-cu12
+
+RUN python3 -m pip install --default-timeout=1000 --retries=10 --find-links /tmp/wheels tensorboard wandb opencv-python
+
+# add gcc9
+RUN sudo apt-get -y install mesa-common-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev vulkan-utils mesa-vulkan-drivers libegl1 gcc-8 g++-8 gcc-9 g++-9 pigz
 RUN sudo rm /usr/lib/x86_64-linux-gnu/libEGL_mesa.so.0 /usr/lib/x86_64-linux-gnu/libEGL_mesa.so.0.0.0 /usr/share/glvnd/egl_vendor.d/50_mesa.json
-
-RUN sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 8
-RUN sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 8
+# set gcc-9 as default
+RUN sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 8 && \
+    sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 8 && \
+    sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 9 && \
+    sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 9 && \
+    sudo update-alternatives --set gcc /usr/bin/gcc-9 && \
+    sudo update-alternatives --set g++ /usr/bin/g++-9
 
 COPY asset/nvidia_icd.json /usr/share/vulkan/icd.d/nvidia_icd.json
 COPY asset/10_nvidia.json /usr/share/glvnd/egl_vendor.d/10_nvidia.json
@@ -53,20 +110,24 @@ COPY asset/IsaacGym_Preview_4_Package.tar.gz /home/user/
 WORKDIR /home/user
 RUN tar -xzf ~/IsaacGym_Preview_4_Package.tar.gz && rm ~/IsaacGym_Preview_4_Package.tar.gz
 RUN cd isaacgym/python && \
-    python3 -m pip install -e .
+    python3 -m pip install --default-timeout=1000 --retries=10 --find-links /tmp/wheels -e .
 
 COPY --chown=user:user rsl_rl /home/user/rsl_rl
 WORKDIR /home/user
 RUN cd rsl_rl && \
-    python3 -m pip install -e .
+    python3 -m pip install --default-timeout=1000 --retries=10 --find-links /tmp/wheels -e .
 
 COPY --chown=user:user legged_gym /home/user/legged_gym
 WORKDIR /home/user
 RUN cd legged_gym && \
-    python3 -m pip install -e .
+    python3 -m pip install --default-timeout=1000 --retries=10 --find-links /tmp/wheels -e .
 
 RUN sudo apt-get -y install python3-actionlib
 COPY requirements.txt /home/user/
 WORKDIR /home/user
 # RUN python3 -m pip install -r requirements.txt && rm requirements.txt
+RUN gcc --version && python --version
+
+# Clean up downloaded wheels
+RUN rm -rf /tmp/wheels
 
