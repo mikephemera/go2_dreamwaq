@@ -46,29 +46,6 @@ RUN sudo apt-get install -y python-is-python3
 
 # Pre-download wheels to cache
 RUN mkdir -p /tmp/wheels && \
-    cd /tmp/wheels && \
-    python3 -m pip download --default-timeout=2000 --retries=10 \
-        --extra-index-url https://download.pytorch.org/whl/cu121 \
-        tensorboard \
-        wandb \
-        opencv-python \
-        imageio \
-        ninja \
-        pillow \
-        scipy \
-        torch \
-        torchvision \
-        filelock \
-        sympy \
-        networkx \
-        jinja2 \
-        fsspec \
-        pyyaml \
-        numpy \
-        protobuf
-
-# Download NVIDIA CUDA runtime packages (large files)
-RUN cd /tmp/wheels && \
     python3 -m pip download --default-timeout=2000 --retries=10 \
         --extra-index-url https://download.pytorch.org/whl/cu121 \
         nvidia-cuda-nvrtc-cu12 \
@@ -90,6 +67,28 @@ RUN cd /tmp/wheels && \
         triton \
         nvidia-nvjitlink-cu12
 
+RUN cd /tmp/wheels && \
+    cd /tmp/wheels && \
+    python3 -m pip download --default-timeout=2000 --retries=10 \
+        --extra-index-url https://download.pytorch.org/whl/cu121 \
+        tensorboard \
+        wandb \
+        opencv-python \
+        imageio \
+        ninja \
+        pillow \
+        scipy \
+        torch \
+        torchvision \
+        filelock \
+        sympy \
+        networkx \
+        jinja2 \
+        fsspec \
+        pyyaml \
+        numpy \
+        protobuf
+        
 RUN python3 -m pip install --default-timeout=1000 --retries=10 --find-links /tmp/wheels tensorboard wandb opencv-python
 
 # add gcc9
