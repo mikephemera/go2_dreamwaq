@@ -93,6 +93,6 @@ def train(args):
 
 
 if __name__ == "__main__":
-    WANDB = True
+    WANDB = False
     args = get_args()
     train(args)

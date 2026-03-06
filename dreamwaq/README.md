@@ -85,11 +85,35 @@ You may also need to install [NVIDIA Container Toolkit](https://docs.nvidia.com/
    cd /mnt/datafiles/Work-syncfree/go2_dreamwaq/
    docker run -ti --privileged -e DISPLAY=:0 -e TERM=xterm-256color -v /tmp/.X11-unix:/tmp/.X11-unix:ro --network host -v $PWD/dreamwaq:/home/user/dreamwaq --gpus all dreamwaq/dreamwaq /usr/bin/zsh
    ```
+> Docker env has another issue, PyTorch requires GCC 9+, but the system default gcc command points to GCC 8.4.0. Here is the solution:
+```bash 
+#1. Update alternatives configuration
+sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90
+sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 80
+sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 90
+sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 80
 
+#2. Choose GCC 9 as default
+sudo update-alternatives --config gcc
+sudo update-alternatives --config g++
+
+#3. verify
+gcc --version
+#It should show gcc version 9.x.x
+
+#4. clear pytorch cache
+rm -rf /home/user/.cache/torch_extensions/py38_cu121
+rm -rf /home/user/.cache/torch_extensions/*
+```
 ---
 
 ### Command
-
+Execute within the container:
+```bash                                                                                                
+cd dreamwaq/legged_gym/legged_gym/scripts                                                                                      
+python3 train.py --task=a1_waq --headless 
+#Don't use visual in docker version... potential memcpy error.
+```
 #### Training
 
 ```bash
