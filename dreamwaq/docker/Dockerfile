@@ -14,6 +14,11 @@ ARG GID=1000
 RUN groupadd -g $GID -o user && useradd -m -u $UID -g $GID -o -s /bin/bash user
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# 替换 apt 源为清华 tuna 镜像
+RUN sed -i 's|http://archive.ubuntu.com|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list && \
+    sed -i 's|http://security.ubuntu.com|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list
+
 RUN apt-get update && apt-get install -y sudo dialog apt-utils tzdata
 RUN echo "%sudo ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && echo "user:user" | chpasswd && adduser user sudo
 
@@ -47,6 +52,8 @@ RUN sudo apt-get install -y python-is-python3
 # Pre-download wheels to cache
 RUN mkdir -p /tmp/wheels && \
     python3 -m pip download --default-timeout=2000 --retries=10 \
+        --extra-index-url https://mirrors.aliyun.com/pypi/simple/ \
+        --extra-index-url https://mirrors.cloud.tencent.com/pypi/simple/ \
         --extra-index-url https://download.pytorch.org/whl/cu121 \
         nvidia-cuda-nvrtc-cu12 \
         nvidia-cuda-runtime-cu12 \
@@ -55,9 +62,20 @@ RUN mkdir -p /tmp/wheels && \
 # Download NVIDIA CUDA libraries (very large, especially cudnn)
 RUN cd /tmp/wheels && \
     python3 -m pip download --default-timeout=2000 --retries=10 \
+        --extra-index-url https://mirrors.aliyun.com/pypi/simple/ \
+        --extra-index-url https://mirrors.cloud.tencent.com/pypi/simple/ \
         --extra-index-url https://download.pytorch.org/whl/cu121 \
+        --find-links /tmp/wheels \
         nvidia-cudnn-cu12 \
-        nvidia-cublas-cu12 \
+        nvidia-cublas-cu12
+
+# Download NVIDIA CUDA libraries
+RUN cd /tmp/wheels && \
+    python3 -m pip download --default-timeout=2000 --retries=10 \
+        --extra-index-url https://mirrors.aliyun.com/pypi/simple/ \
+        --extra-index-url https://mirrors.cloud.tencent.com/pypi/simple/ \
+        --extra-index-url https://download.pytorch.org/whl/cu121 \
+        --find-links /tmp/wheels \
         nvidia-cufft-cu12 \
         nvidia-curand-cu12 \
         nvidia-cusolver-cu12 \
@@ -68,17 +86,56 @@ RUN cd /tmp/wheels && \
         nvidia-nvjitlink-cu12
 
 RUN cd /tmp/wheels && \
-    cd /tmp/wheels && \
     python3 -m pip download --default-timeout=2000 --retries=10 \
+        --extra-index-url https://mirrors.aliyun.com/pypi/simple/ \
+        --extra-index-url https://mirrors.cloud.tencent.com/pypi/simple/ \
         --extra-index-url https://download.pytorch.org/whl/cu121 \
+        --find-links /tmp/wheels \
         tensorboard \
         wandb \
         opencv-python \
         imageio \
         ninja \
         pillow \
-        scipy \
-        torch \
+        scipy
+        
+RUN cd /tmp/wheels && \
+    python3 -m pip download --default-timeout=2000 --retries=10 \
+        --extra-index-url https://mirrors.aliyun.com/pypi/simple/ \
+        --extra-index-url https://mirrors.cloud.tencent.com/pypi/simple/ \
+        --extra-index-url https://download.pytorch.org/whl/cu121 \
+        --find-links /tmp/wheels \
+        nvidia-cudnn-cu12==9.1.0.70 \
+        nvidia-cublas-cu12==12.1.3.1
+
+RUN cd /tmp/wheels && \
+    python3 -m pip download --default-timeout=2000 --retries=10 \
+        --extra-index-url https://mirrors.aliyun.com/pypi/simple/ \
+        --extra-index-url https://mirrors.cloud.tencent.com/pypi/simple/ \
+        --extra-index-url https://download.pytorch.org/whl/cu121 \
+        --find-links /tmp/wheels \
+        nvidia-cufft-cu12==11.0.2.54 \
+        nvidia-curand-cu12==10.3.2.106 \
+        nvidia-cusolver-cu12==11.4.5.107 \
+        nvidia-cusparse-cu12==12.1.0.106 \
+        nvidia-nvtx-cu12==12.1.105 \
+        nvidia-nccl-cu12==2.20.5 \
+        triton==3.0.0
+
+RUN cd /tmp/wheels && \
+    python3 -m pip download --default-timeout=2000 --retries=10 \
+        --extra-index-url https://mirrors.aliyun.com/pypi/simple/ \
+        --extra-index-url https://mirrors.cloud.tencent.com/pypi/simple/ \
+        --extra-index-url https://download.pytorch.org/whl/cu121 \
+        --find-links /tmp/wheels \
+        torch
+
+RUN cd /tmp/wheels && \
+    python3 -m pip download --default-timeout=2000 --retries=10 \
+        --extra-index-url https://mirrors.aliyun.com/pypi/simple/ \
+        --extra-index-url https://mirrors.cloud.tencent.com/pypi/simple/ \
+        --extra-index-url https://download.pytorch.org/whl/cu121 \
+        --find-links /tmp/wheels \
         torchvision \
         filelock \
         sympy \
@@ -89,7 +146,10 @@ RUN cd /tmp/wheels && \
         numpy \
         protobuf
         
-RUN python3 -m pip install --default-timeout=1000 --retries=10 --find-links /tmp/wheels tensorboard wandb opencv-python
+RUN python3 -m pip install --default-timeout=1000 --retries=10 \
+    --extra-index-url https://mirrors.aliyun.com/pypi/simple/ \
+    --extra-index-url https://mirrors.cloud.tencent.com/pypi/simple/ \
+    --find-links /tmp/wheels tensorboard wandb opencv-python
 
 # add gcc9
 RUN sudo apt-get -y install mesa-common-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev vulkan-utils mesa-vulkan-drivers libegl1 gcc-8 g++-8 gcc-9 g++-9 pigz
@@ -109,23 +169,31 @@ COPY asset/IsaacGym_Preview_4_Package.tar.gz /home/user/
 WORKDIR /home/user
 RUN tar -xzf ~/IsaacGym_Preview_4_Package.tar.gz && rm ~/IsaacGym_Preview_4_Package.tar.gz
 RUN cd isaacgym/python && \
-    python3 -m pip install --default-timeout=1000 --retries=10 --find-links /tmp/wheels -e .
+    python3 -m pip install --default-timeout=1000 --retries=10 \
+        --extra-index-url https://mirrors.aliyun.com/pypi/simple/ \
+        --extra-index-url https://mirrors.cloud.tencent.com/pypi/simple/ \
+        --find-links /tmp/wheels -e .
 
 COPY --chown=user:user rsl_rl /home/user/rsl_rl
 WORKDIR /home/user
 RUN cd rsl_rl && \
-    python3 -m pip install --default-timeout=1000 --retries=10 --find-links /tmp/wheels -e .
+    python3 -m pip install --default-timeout=1000 --retries=10 \
+        --extra-index-url https://mirrors.aliyun.com/pypi/simple/ \
+        --extra-index-url https://mirrors.cloud.tencent.com/pypi/simple/ \
+        --find-links /tmp/wheels -e .
 
 COPY --chown=user:user legged_gym /home/user/legged_gym
 WORKDIR /home/user
 RUN cd legged_gym && \
-    python3 -m pip install --default-timeout=1000 --retries=10 --find-links /tmp/wheels -e .
+    python3 -m pip install --default-timeout=1000 --retries=10 \
+        --extra-index-url https://mirrors.aliyun.com/pypi/simple/ \
+        --extra-index-url https://mirrors.cloud.tencent.com/pypi/simple/ \
+        --find-links /tmp/wheels -e .
 
 RUN sudo apt-get -y install python3-actionlib
 COPY requirements.txt /home/user/
 WORKDIR /home/user
 # RUN python3 -m pip install -r requirements.txt && rm requirements.txt
-RUN gcc --version && python --version
 
 # Clean up downloaded wheels
 RUN rm -rf /tmp/wheels
