@@ -53,15 +53,21 @@ https://github.com/curieuxjy/dreamwaq/assets/40867411/5dcea5c9-3ff3-469d-baa7-70
 6. `AttributeError: module 'distutils' has no attribute 'version'`
    - `pip install setuptools==59.5.0`
    - (ref) https://github.com/pytorch/pytorch/issues/69894
-7. Start Rough terrain locomotion learning with A1 (refer to table below)
+7. Start rough-terrain locomotion training with A1 or Go2 (refer to table below)
 
 #### Task Options
 
-| Option             | Config           | Critic Obs | Actor Obs | Memo                                               |
-| ------------------ | ---------------- | :--------: | :-------: | -------------------------------------------------- |
-| `--task=a1_base`   | A1RoughBaseCfg   |     45     |    45     | observation without lin_vel                        |
-| `--task=a1_oracle` | A1RoughOracleCfg |    238     |    238    | true_lin_vel + privileged(d,h)                     |
-| `--task=a1_waq`    | A1RoughBaseCfg   |    238     |    64     | est_lin_vel + privileged / obs_history(timestep 5) |
+| Option              | Config              | Critic Obs | Actor Obs | Memo                                                             |
+| ------------------- | ------------------- | :--------: | :-------: | ---------------------------------------------------------------- |
+| `--task=a1_base`    | `A1RoughBaseCfg`    |     45     |    45     | blind base policy (no linear velocity input)                     |
+| `--task=a1_oracle`  | `A1RoughOracleCfg`  |    238     |    238    | true linear velocity + privileged terrain info                   |
+| `--task=a1_waq`     | `A1RoughWaqCfg`     |    238     |    64     | estimated linear velocity + context vector + observation history |
+| `--task=a1_est`     | `A1RoughEstCfg`     |    238     |    48     | estimated linear velocity (Estimator-only variant)               |
+| `--task=go2_base`   | `Go2RoughBaseCfg`   |     45     |    45     | Go2 blind base policy                                            |
+| `--task=go2_oracle` | `Go2RoughOracleCfg` |    238     |    238    | Go2 oracle policy with privileged terrain info                   |
+| `--task=go2_waq`    | `Go2RoughWaqCfg`    |    238     |    64     | Go2 DreamWaQ policy (estimated velocity + context)               |
+
+> Note: `go2_est` config classes exist, but `--task=go2_est` is not currently registered in `legged_gym/envs/__init__.py`.
 
 ---
 
@@ -176,6 +182,12 @@ If you want to inference a **model\_[NUMBER].pt** file trained on a different co
 | 2    | Copy **model\_[NUMBER].pt** | Paste to `FOLDER_NAME`                                                                 |
 | 3    | -                           | Run `python play.py --task=[TASK_NAME] --load_run=[FOLDER_NAME] --checkpoint=[NUMBER]` |
 
+```bash
+#Use tensorboard
+tensorboard --logdir=/mnt/datafiles/Work-syncfree/go2_dreamwaq/dreamwaq_logs
+
+python play.py --task=a1_waq --load_run=Sep04_14-24-54_waq --checkpoint=250
+```
 ---
 
 ## Main Code Structure

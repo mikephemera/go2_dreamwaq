@@ -160,3 +160,7 @@ Flat‑terrain reference implementation. Shares the same `legged_gym` structure 
 - LCM bridge: `wtw/go2_gym_deploy/unitree_sdk2_bin/lcm_position_go2.cpp`
 
 When modifying robot parameters, always check the robot‑specific config file first; base configs are inherited but often overridden.
+
+## sim2sim
+MuJoCo is installed at
+/mnt/datafiles/Work-syncfree/mujoco/mujoco-3.5.0/bin/simulate
