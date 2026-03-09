@@ -94,7 +94,7 @@ https://github.com/curieuxjy/dreamwaq/assets/40867411/5dcea5c9-3ff3-469d-baa7-70
        -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
        --network host \
        -v $PWD/dreamwaq:/home/user/dreamwaq \
-       -v $PWD/dreamwaq_logs:/home/user/dreamwaq/legged_gym/logs \
+       -v $PWD/dreamwaq_logs:/home/user/legged_gym/logs \
        --name dreamwaq-run \
        --gpus all \
        dreamwaq/dreamwaq /usr/bin/zsh
@@ -134,7 +134,7 @@ Execute within the container:
 ```bash
 cd dreamwaq/legged_gym/legged_gym/scripts
 python train.py --task=a1_waq --headless
-#Don't use visual in docker version... potential memcpy error.
+#Use --headless to avoid memcpy error when display not connected.
 ```
 
 #### Training

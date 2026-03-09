@@ -1,0 +1,51 @@
+algorithm:
+  clip_param: 0.2
+  desired_kl: 0.01
+  entropy_coef: 0.01
+  gamma: 0.99
+  lam: 0.95
+  learning_rate: 0.001
+  max_grad_norm: 1.0
+  num_learning_epochs: 5
+  num_mini_batches: 4
+  schedule: adaptive
+  use_clipped_value_loss: true
+  value_loss_coef: 1.0
+init_member_classes: {}
+policy:
+  activation: elu
+  actor_hidden_dims:
+  - 512
+  - 256
+  - 128
+  critic_hidden_dims:
+  - 512
+  - 256
+  - 128
+  init_noise_std: 1.0
+runner:
+  ada_boot: true
+  algorithm_class_name: PPO
+  checkpoint: -1
+  experiment_name: rough_a1_waq
+  load_run: -1
+  max_iterations: 1500
+  num_steps_per_env: 24
+  obs_rms: true
+  policy_class_name: ActorCritic
+  privileged_obs_rms: true
+  resume: false
+  resume_path: null
+  run_name: waq
+  save_interval: 50
+  true_vel_rms: true
+  vae_class_name: CENet
+runner_class_name: OnPolicyRunner
+seed: 1
+vae:
+  beta: 1.0
+  beta_limit: 4.0
+  factor: 0.8
+  learning_rate: 0.01
+  min_lr: 0.0015
+  patience: 100
