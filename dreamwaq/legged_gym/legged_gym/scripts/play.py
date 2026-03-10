@@ -38,11 +38,11 @@ import isaacgym
 from legged_gym.envs import *
 from legged_gym.utils import (
     get_args,
-    export_policy_as_jit,
     task_registry,
     Custom_Logger,
     Logger,
 )
+from export import export_models
 
 import numpy as np
 import torch
@@ -97,17 +97,26 @@ def play(args):
     if ESTNET:
         estnet = ppo_runner.get_inference_estnet(device=env.device).to(env.device)
 
-    # export policy as a jit module (used to run it from C++)
-    if EXPORT_POLICY:
-        path = os.path.join(
+    # export models (JIT, ONNX, CENET/ESTNET)
+    if EXPORT_POLICY or EXPORT_ONNX or EXPORT_CENET or EXPORT_ESTNET:
+        export_dir = os.path.join(
             LEGGED_GYM_ROOT_DIR,
             "logs",
             train_cfg.runner.experiment_name,
             "exported",
-            "policies",
         )
-        export_policy_as_jit(ppo_runner.alg.actor_critic, path)
-        print("Exported policy as jit script to: ", path)
+        results = export_models(
+            ppo_runner=ppo_runner,
+            env=env,
+            export_dir=export_dir,
+            export_jit=EXPORT_POLICY,
+            export_onnx=EXPORT_ONNX,
+            export_cenet=EXPORT_CENET and CENET,  # only if task uses CENET
+            export_estnet=EXPORT_ESTNET and ESTNET,  # only if task uses ESTNET
+            opset_version=14,
+            verbose=True,
+        )
+        print("\n********************Export results:********************\n", results, "\n\n")
 
     # logger setting
     if CENET or ESTNET:
@@ -311,6 +320,9 @@ def play(args):
 
 if __name__ == "__main__":
     EXPORT_POLICY = True
+    EXPORT_ONNX = True  # export policy as ONNX
+    EXPORT_CENET = True  # export CENet as ONNX if task uses it
+    EXPORT_ESTNET = True  # export ESTNet as ONNX if task uses it
     RECORD_FRAMES = True  # render a video
     TRUE_VEL = True  # inference with true base velocity not estimated base velocity
     args = get_args()
