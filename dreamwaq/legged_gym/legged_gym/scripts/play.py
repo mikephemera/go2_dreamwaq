@@ -310,7 +310,7 @@ def play(args):
 
 
 if __name__ == "__main__":
-    EXPORT_POLICY = False
+    EXPORT_POLICY = True
     RECORD_FRAMES = True  # render a video
     TRUE_VEL = True  # inference with true base velocity not estimated base velocity
     args = get_args()
