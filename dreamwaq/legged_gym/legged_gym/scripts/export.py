@@ -416,11 +416,29 @@ def export_models(
         try:
             cenet = ppo_runner.get_inference_cenet(device=device)
             if cenet is not None:
-                # Determine observation history dimension
-                # This depends on env.cfg.env.num_observation_history and observation dimension
-                obs_dim = env.num_obs
-                hist_len = env.cfg.env.num_observation_history
-                obs_history_dim = obs_dim * hist_len
+                # Determine observation history dimension from CENet encoder first layer
+                # CENet encoder is a Sequential with first Linear layer
+                if hasattr(cenet, 'encoder') and isinstance(cenet.encoder, torch.nn.Sequential):
+                    # Find first Linear layer in encoder
+                    for module in cenet.encoder.modules():
+                        if isinstance(module, torch.nn.Linear):
+                            obs_history_dim = module.in_features
+                            break
+                    else:
+                        # Fallback: try to infer from model structure
+                        obs_history_dim = 225  # default for go2_waq
+                        if verbose:
+                            warnings.warn(f"Cannot infer obs_history_dim from CENet encoder, using default {obs_history_dim}")
+                else:
+                    # Try to find first Linear layer in entire model
+                    for module in cenet.modules():
+                        if isinstance(module, torch.nn.Linear):
+                            obs_history_dim = module.in_features
+                            break
+                    else:
+                        obs_history_dim = 225  # default for go2_waq
+                        if verbose:
+                            warnings.warn(f"Cannot infer obs_history_dim from CENet, using default {obs_history_dim}")
 
                 cenet_path = export_cenet_as_onnx(
                     cenet,
@@ -441,10 +459,28 @@ def export_models(
         try:
             estnet = ppo_runner.get_inference_estnet(device=device)
             if estnet is not None:
-                # Similar dimension calculation as CENet
-                obs_dim = env.num_obs
-                hist_len = env.cfg.env.num_observation_history
-                obs_history_dim = obs_dim * hist_len
+                # Determine observation history dimension from ESTNet first Linear layer
+                # ESTNet is typically a Sequential MLP
+                if isinstance(estnet, torch.nn.Sequential):
+                    # Find first Linear layer
+                    for module in estnet.modules():
+                        if isinstance(module, torch.nn.Linear):
+                            obs_history_dim = module.in_features
+                            break
+                    else:
+                        obs_history_dim = 225  # default fallback
+                        if verbose:
+                            warnings.warn(f"Cannot infer obs_history_dim from ESTNet Sequential, using default {obs_history_dim}")
+                else:
+                    # Try to find first Linear layer in entire model
+                    for module in estnet.modules():
+                        if isinstance(module, torch.nn.Linear):
+                            obs_history_dim = module.in_features
+                            break
+                    else:
+                        obs_history_dim = 225  # default fallback
+                        if verbose:
+                            warnings.warn(f"Cannot infer obs_history_dim from ESTNet, using default {obs_history_dim}")
 
                 estnet_path = export_estnet_as_onnx(
                     estnet,
