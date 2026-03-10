@@ -90,7 +90,7 @@ https://github.com/curieuxjy/dreamwaq/assets/40867411/5dcea5c9-3ff3-469d-baa7-70
 
    ```bash
    cd /mnt/datafiles/Work-syncfree/go2_dreamwaq/
-   #check display before run
+   # check display before run
    echo $DISPLAY
    # create logs directory and run container with name and volume
 
@@ -140,7 +140,7 @@ Execute within the container:
 ```bash
 cd dreamwaq/legged_gym/legged_gym/scripts
 python train.py --task=a1_waq --headless
-#Use --headless to avoid memcpy error when display not connected.
+# Use --headless to avoid memcpy error when display not connected.
 ```
 
 #### Training
@@ -183,10 +183,16 @@ If you want to inference a **model\_[NUMBER].pt** file trained on a different co
 | 3    | -                           | Run `python play.py --task=[TASK_NAME] --load_run=[FOLDER_NAME] --checkpoint=[NUMBER]` |
 
 ```bash
-#Use tensorboard
+# Use tensorboard
 tensorboard --logdir=/mnt/datafiles/Work-syncfree/go2_dreamwaq/dreamwaq_logs
 
-python play.py --task=a1_waq --load_run=Sep04_14-24-54_waq --checkpoint=250
+# Workflow reuse docker container
+docker start dreamwaq-run
+docker exec -it dreamwaq-run /bin/bash
+cd dreamwaq/legged_gym/legged_gym/scripts
+# python train.py --task=go2_waq --headless
+python play.py --task=go2_waq --load_run=Sep04_14-24-54_waq --checkpoint=250
+python mini_test.py --task=go2_waq --num_envs 1
 ```
 ---
 
