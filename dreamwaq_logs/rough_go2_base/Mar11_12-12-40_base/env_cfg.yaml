@@ -1,0 +1,277 @@
+asset:
+  angular_damping: 0.0
+  armature: 0.0
+  collapse_fixed_joints: true
+  default_dof_drive_mode: 3
+  density: 0.001
+  disable_gravity: false
+  file: '{LEGGED_GYM_ROOT_DIR}/resources/robots/go2/urdf/go2.urdf'
+  fix_base_link: false
+  flip_visual_attachments: true
+  foot_name: foot
+  linear_damping: 0.0
+  max_angular_velocity: 1000.0
+  max_linear_velocity: 1000.0
+  name: go2
+  penalize_contacts_on:
+  - thigh
+  - calf
+  replace_cylinder_with_capsule: true
+  self_collisions: 1
+  terminate_after_contacts_on:
+  - base
+  thickness: 0.01
+commands:
+  curriculum: true
+  heading_command: true
+  inference_command: x
+  inference_policy: false
+  max_curriculum: 1.0
+  num_commands: 4
+  ranges:
+    ang_vel_yaw:
+    - -1
+    - 1
+    heading:
+    - -3.14
+    - 3.14
+    lin_vel_x:
+    - -1.0
+    - 1.0
+    lin_vel_y:
+    - -1.0
+    - 1.0
+  resampling_time: 10.0
+control:
+  action_scale: 0.25
+  control_type: P
+  damping:
+    joint: 0.5
+  decimation: 4
+  stiffness:
+    joint: 20.0
+domain_rand:
+  added_mass_range:
+  - -1.0
+  - 2.0
+  com_range:
+  - -0.05
+  - 0.05
+  d_gains_range:
+  - 0.9
+  - 1.1
+  friction_range:
+  - 0.2
+  - 1.25
+  max_push_vel_xy: 1.0
+  motor_strength_range:
+  - 0.9
+  - 1.1
+  p_gains_range:
+  - 0.9
+  - 1.1
+  push_interval: !!python/object/apply:numpy.core.multiarray.scalar
+  - !!python/object/apply:numpy.dtype
+    args:
+    - f8
+    - false
+    - true
+    state: !!python/tuple
+    - 3
+    - <
+    - null
+    - null
+    - null
+    - -1
+    - -1
+    - 0
+  - !!binary |
+    AAAAAACASUA=
+  push_interval_s: 1.0
+  push_robots: true
+  randomize_base_mass: true
+  randomize_com: true
+  randomize_d_gains: true
+  randomize_friction: true
+  randomize_motor_strength: true
+  randomize_p_gains: true
+  system_delay: true
+env:
+  env_spacing: 3.0
+  episode_length_s: 20
+  len_obs_history: 1
+  num_actions: 12
+  num_envs: 4096
+  num_observations: 45
+  num_privileged_obs: null
+  send_timeouts: true
+init_member_classes: {}
+init_state:
+  ang_vel:
+  - 0.0
+  - 0.0
+  - 0.0
+  default_joint_angles:
+    FL_calf_joint: -1.5
+    FL_hip_joint: 0.1
+    FL_thigh_joint: 0.8
+    FR_calf_joint: -1.5
+    FR_hip_joint: -0.1
+    FR_thigh_joint: 0.8
+    RL_calf_joint: -1.5
+    RL_hip_joint: 0.1
+    RL_thigh_joint: 1.0
+    RR_calf_joint: -1.5
+    RR_hip_joint: -0.1
+    RR_thigh_joint: 1.0
+  lin_vel:
+  - 0.0
+  - 0.0
+  - 0.0
+  pos:
+  - 0.0
+  - 0.0
+  - 0.34
+  rot:
+  - 0.0
+  - 0.0
+  - 0.0
+  - 1.0
+noise:
+  add_noise: true
+  noise_level: 1.0
+  noise_scales:
+    ang_vel: 0.2
+    dof_pos: 0.01
+    dof_vel: 1.5
+    gravity: 0.05
+    height_measurements: 0.1
+    lin_vel: 0.1
+normalization:
+  clip_actions: 100.0
+  clip_observations: 100.0
+  fixed_norm: false
+  obs_scales:
+    ang_vel: 0.25
+    dof_pos: 1.0
+    dof_vel: 0.05
+    height_measurements: 5.0
+    lin_vel: 2.0
+rewards:
+  base_height_target: 0.3
+  desired_foot_height: 0.12
+  max_contact_force: 100.0
+  only_positive_rewards: false
+  scales:
+    action_rate: -0.01
+    ang_vel_xy: -0.05
+    base_height: -1.0
+    collision: -0.0
+    dof_acc: -2.5e-07
+    dof_pos_limits: -0.0
+    dof_vel: -0.0
+    feet_air_time: 0.0
+    feet_stumble: -0.0
+    foot_clearance: -0.01
+    joint_power: -2.0e-05
+    lin_vel_z: -2.0
+    orientation: -0.2
+    power_distribution: -1.0e-06
+    smoothness: -0.01
+    stand_still: -0.0
+    termination: -0.0
+    torques: -0.0
+    tracking_ang_vel: 0.5
+    tracking_lin_vel: 1.0
+  soft_dof_pos_limit: 0.9
+  soft_dof_vel_limit: 1.0
+  soft_torque_limit: 1.0
+  tracking_sigma: 0.25
+seed: 1
+sim:
+  dt: 0.005
+  gravity:
+  - 0.0
+  - 0.0
+  - -9.81
+  physx:
+    bounce_threshold_velocity: 0.5
+    contact_collection: 2
+    contact_offset: 0.01
+    default_buffer_size_multiplier: 5
+    max_depenetration_velocity: 1.0
+    max_gpu_contact_pairs: 8388608
+    num_position_iterations: 4
+    num_threads: 10
+    num_velocity_iterations: 0
+    rest_offset: 0.0
+    solver_type: 1
+  substeps: 1
+  up_axis: 1
+terrain:
+  border_size: 25
+  curriculum: true
+  dynamic_friction: 1.0
+  horizontal_scale: 0.05
+  max_init_terrain_level: 5
+  measure_heights: false
+  measured_points_x:
+  - -0.8
+  - -0.7
+  - -0.6
+  - -0.5
+  - -0.4
+  - -0.3
+  - -0.2
+  - -0.1
+  - 0.0
+  - 0.1
+  - 0.2
+  - 0.3
+  - 0.4
+  - 0.5
+  - 0.6
+  - 0.7
+  - 0.8
+  measured_points_y:
+  - -0.5
+  - -0.4
+  - -0.3
+  - -0.2
+  - -0.1
+  - 0.0
+  - 0.1
+  - 0.2
+  - 0.3
+  - 0.4
+  - 0.5
+  mesh_type: trimesh
+  num_cols: 20
+  num_rows: 10
+  num_sub_terrains: 200
+  restitution: 0.0
+  selected: false
+  slope_treshold: 0.75
+  static_friction: 1.0
+  terrain_kwargs: null
+  terrain_length: 8.0
+  terrain_proportions:
+  - 0.1
+  - 0.1
+  - 0.35
+  - 0.25
+  - 0.2
+  terrain_width: 8.0
+  vertical_scale: 0.005
+viewer:
+  debug_viz: true
+  enable_viewer_sync: true
+  lookat:
+  - 11.0
+  - 5
+  - 3.0
+  pos:
+  - 10
+  - 0
+  - 6
+  ref_env: 0

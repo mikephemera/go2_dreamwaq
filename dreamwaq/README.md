@@ -194,7 +194,147 @@ cd dreamwaq/legged_gym/legged_gym/scripts
 python play.py --task=go2_waq --load_run=Sep04_14-24-54_waq --checkpoint=250
 python mini_test.py --task=go2_waq --num_envs 1
 ```
+
 ---
+## 观测，缩放和关节顺序
+`base/waq/est` 会去掉 `base_lin_vel`，而 `oracle` 保留。
+
+1. **观测顺序（env 输出）**
+
+- 代码位置：`dreamwaq/legged_gym/legged_gym/envs/base/legged_robot.py:346`
+- 拼接来源是 `obs_dict` 按插入顺序 `torch.cat(list(obs_dict.values()))`：`dreamwaq/legged_gym/legged_gym/envs/base/legged_robot.py:427`
+- `go2_base/go2_waq/go2_est` 会删掉 `base_lin_vel`：`dreamwaq/legged_gym/legged_gym/envs/base/legged_robot.py:423`
+- 下述索引区间使用 Python slice 语义，即 `start:end` 表示包含 `start`、不包含 `end`。
+
+`go2_base` / `go2_waq`（45维）顺序：
+
+- `0:3` `base_ang_vel` (3) # 基座角速度
+- `3:6` `projected_gravity` (3) # 投影重力
+- `6:9` `commands[:3]` (3) # 指令
+- `9:21` `dof_pos - default_dof_pos` (12) # 关节位置
+- `21:33` `dof_vel` (12) # 关节速度
+- `33:45` `actions` (12) # 上一时刻动作
+
+`go2_oracle`（48维）顺序：
+
+- `0:3` `base_lin_vel` (3)
+- `3:6` `base_ang_vel` (3)
+- `6:9` `projected_gravity` (3)
+- `9:12` `commands[:3]` (3)
+- `12:24` `dof_pos - default_dof_pos` (12)
+- `24:36` `dof_vel` (12)
+- `36:48` `actions` (12)
+
+2. **训练时真正喂给策略的输入（尤其 `go2_waq`）**
+
+- `go2_waq` 里 actor 输入不是纯 45 维，而是：`[obs(45), vel_input(3), context_vec(16)]`
+- 代码：`dreamwaq/rsl_rl/rsl_rl/runners/on_policy_runner.py:559`
+- 所以 `go2_waq` actor 输入维度是 64（配置里也对应 `num_context=16`, `num_estvel=3`）：`dreamwaq/legged_gym/legged_gym/envs/go2/go2_config.py:233-235`
+
+3. **缩放（scale）**
+
+- 固定缩放参数定义在：`dreamwaq/legged_gym/legged_gym/envs/base/legged_robot_config.py:201`
+  - `lin_vel=2.0` # 线速度
+  - `ang_vel=0.25` # 角速度
+  - `dof_pos=1.0` # 关节位置
+  - `dof_vel=0.05` # 关节速度
+  - `height_measurements=5.0` # 高度测量
+- 但是否应用固定缩放取决于 `fixed_norm`。`go2_waq` 显式 `fixed_norm=False`：`dreamwaq/legged_gym/legged_gym/envs/go2/go2_config.py:244`
+- `fixed_norm=False` 时，上述固定 scale 不乘到 obs 上（只在 `fixed_norm=True` 分支才乘）：`dreamwaq/legged_gym/legged_gym/envs/base/legged_robot.py:415`
+- 训练中主要使用 **RMS 标准化**（`obs_rms=True` 等）：`dreamwaq/legged_gym/legged_gym/envs/go2/go2_config.py:263`，实际标准化代码在：`dreamwaq/rsl_rl/rsl_rl/runners/on_policy_runner.py:502`
+
+4. **关节顺序（DOF 顺序）**
+
+- DOF 顺序来自 IsaacGym 读取 asset 的 `dof_names`，不是 `default_joint_angles` 字典顺序：`dreamwaq/legged_gym/legged_gym/envs/base/legged_robot.py:1199`
+- 当前 go2.urdf 中 12 个 revolute joint 顺序是：
+      1. FL_hip_joint   （左前髋）
+      2. FL_thigh_joint （左前大腿）
+      3. FL_calf_joint  （左前小腿）
+      4. FR_hip_joint   （右前髋）
+      5. FR_thigh_joint （右前大腿）
+      6. FR_calf_joint  （右前小腿）
+      7. RL_hip_joint   （左后髋）
+      8. RL_thigh_joint （左后大腿）
+      9. RL_calf_joint  （左后小腿）
+      10. RR_hip_joint   （右后髋）
+      11. RR_thigh_joint （右后大腿）
+      12. RR_calf_joint  （右后小腿）
+- 依据：
+`dreamwaq/legged_gym/resources/robots/go2/urdf/go2.urdf:157`、`dreamwaq/legged_gym/resources/robots/go2/urdf/go2.urdf:416`、`dreamwaq/legged_gym/resources/robots/go2/urdf/go2.urdf:675`、`dreamwaq/legged_gym/resources/robots/go2/urdf/go2.urdf:934`
+
+## 导出部署时（ONNX/TorchScript）输入维度与字段顺序对照
+
+### 1) 导出文件接口（直接对应 `export.py`）
+
+| Model file    | Format      | Input name    | Input shape            | Output name              | Output shape        | Notes                                                                                               |
+| ------------- | ----------- | ------------- | ---------------------- | ------------------------ | ------------------- | --------------------------------------------------------------------------------------------------- |
+| `policy_1.pt` | TorchScript | N/A           | `[B, actor_input_dim]` | return tensor            | `[B, 12]`           | TorchScript module from actor network; unlike ONNX, input name is not explicitly set in `export.py` |
+| `policy.onnx` | ONNX        | `input`       | `[B, actor_input_dim]` | `output`                 | `[B, 12]`           | Exported with dynamic batch axis                                                                    |
+| `cenet.onnx`  | ONNX        | `obs_history` | `[B, 225]`             | `est_vel`, `context_vec` | `[B, 3]`, `[B, 16]` | For WAQ deployment                                                                                  |
+| `estnet.onnx` | ONNX        | `obs_history` | `[B, 225]`             | `est_vel`                | `[B, 3]`            | For EST deployment                                                                                  |
+
+`obs_history=225` comes from `len_obs_history(5) * num_observations(45)`.
+
+### 2) Go2 task -> policy input dimension
+
+| Task                      | Actor input tensor to policy       | `actor_input_dim`  |
+| ------------------------- | ---------------------------------- | ------------------ |
+| `go2_base`                | `obs`                              | `45`               |
+| `go2_waq`                 | `cat(obs, vel_input, context_vec)` | `45 + 3 + 16 = 64` |
+| `go2_oracle`              | `cat(obs, privileged_obs)`         | `48 + 190 = 238`   |
+| `go2_est` (if registered) | `cat(obs, est_vel)`                | `45 + 3 = 48`      |
+
+### 3) `obs` 字段顺序（45/48 维）
+
+`go2_base` / `go2_waq` / `go2_est` uses 45-dim `obs`:
+
+| Index range | Field                       | Dim |
+| ----------- | --------------------------- | --- |
+| `0:3`       | `base_ang_vel`              | 3   |
+| `3:6`       | `projected_gravity`         | 3   |
+| `6:9`       | `commands[:3]`              | 3   |
+| `9:21`      | `dof_pos - default_dof_pos` | 12  |
+| `21:33`     | `dof_vel`                   | 12  |
+| `33:45`     | `actions`                   | 12  |
+
+`go2_oracle` uses 48-dim `obs`:
+
+| Index range | Field                       | Dim |
+| ----------- | --------------------------- | --- |
+| `0:3`       | `base_lin_vel`              | 3   |
+| `3:6`       | `base_ang_vel`              | 3   |
+| `6:9`       | `projected_gravity`         | 3   |
+| `9:12`      | `commands[:3]`              | 3   |
+| `12:24`     | `dof_pos - default_dof_pos` | 12  |
+| `24:36`     | `dof_vel`                   | 12  |
+| `36:48`     | `actions`                   | 12  |
+
+### 4) `privileged_obs` 字段顺序（oracle/critic 侧 190 维）
+
+| Index range | Field           | Dim |
+| ----------- | --------------- | --- |
+| `0:3`       | `disturb_force` | 3   |
+| `3:190`     | `heights`       | 187 |
+
+For `go2_oracle` policy input (`238`), the concat order is:
+
+`[obs(48), privileged_obs(190)]` -> `disturb_force` starts at global index `48`, `heights` starts at `51`.
+
+### 5) `obs_history` 展平顺序（给 CENet/ESTNet）
+
+`get_observation_history()` keeps a FIFO queue by:
+
+`obs_history_buf = cat(obs_history_buf[:, 1:], obs_buf.unsqueeze(1), dim=1)`
+
+Then `reshape(num_envs, -1)` flattens time-first in memory order, so layout is:
+
+`[o(t-4), o(t-3), o(t-2), o(t-1), o(t)]`, each `o(*)` is the same 45-dim order listed above.
+
+For WAQ deployment, recommended runtime graph is:
+
+`obs_history(225) -> cenet.onnx -> (est_vel(3), context_vec(16))`
+
+`actor_input = cat(obs(45), est_vel(3), context_vec(16)) -> policy.onnx`
 
 ## Main Code Structure
 
