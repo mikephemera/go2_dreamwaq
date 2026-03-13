@@ -193,6 +193,9 @@ cd dreamwaq/legged_gym/legged_gym/scripts
 # python train.py --task=go2_waq --headless
 python play.py --task=go2_waq --load_run=Sep04_14-24-54_waq --checkpoint=250
 python mini_test.py --task=go2_waq --num_envs 1
+
+#cd out
+python dreamwaq/legged_gym/legged_gym/scripts/read_onnx_rms.py legged_gym/logs/rough_go2_waq/exported/policies/policy.onnx
 ```
 
 ---

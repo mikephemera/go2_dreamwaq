@@ -399,7 +399,7 @@ def export_models(
     export_cenet: bool = False,
     export_estnet: bool = False,
     opset_version: int = 14,
-    embed_rms_in_onnx: bool = True,
+    embed_rms_in_onnx: bool = False,
     verbose: bool = True,
 ) -> dict:
     """
