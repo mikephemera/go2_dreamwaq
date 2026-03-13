@@ -173,11 +173,11 @@ def export_policy_as_onnx(
             opset_version=opset_version,
             input_names=["input"],
             output_names=["output"],
-            dynamic_axes={
-                "input": {0: "batch_size"},
-                "output": {0: "batch_size"}
-            },
-            verbose=verbose,
+            # dynamic_axes={
+            #     "input": {0: "batch_size"},
+            #     "output": {0: "batch_size"}
+            # },
+            verbose=False,
         )
 
     else:
@@ -200,11 +200,11 @@ def export_policy_as_onnx(
             opset_version=opset_version,
             input_names=["input"],
             output_names=["output"],
-            dynamic_axes={
-                "input": {0: "batch_size"},
-                "output": {0: "batch_size"}
-            },
-            verbose=verbose,
+            # dynamic_axes={
+            #     "input": {0: "batch_size"},
+            #     "output": {0: "batch_size"}
+            # },
+            verbose=False,
         )
 
     if verbose:
@@ -264,12 +264,12 @@ def export_cenet_as_onnx(
         opset_version=opset_version,
         input_names=["obs_history"],
         output_names=["est_vel", "context_vec"],
-        dynamic_axes={
-            "obs_history": {0: "batch_size"},
-            "est_vel": {0: "batch_size"},
-            "context_vec": {0: "batch_size"}
-        },
-        verbose=verbose,
+        # dynamic_axes={
+        #     "obs_history": {0: "batch_size"},
+        #     "est_vel": {0: "batch_size"},
+        #     "context_vec": {0: "batch_size"}
+        # },
+        verbose=False,
     )
 
     if verbose:
@@ -315,17 +315,79 @@ def export_estnet_as_onnx(
         opset_version=opset_version,
         input_names=["obs_history"],
         output_names=["est_vel"],
-        dynamic_axes={
-            "obs_history": {0: "batch_size"},
-            "est_vel": {0: "batch_size"}
-        },
-        verbose=verbose,
+        # dynamic_axes={
+        #     "obs_history": {0: "batch_size"},
+        #     "est_vel": {0: "batch_size"}
+        # },
+        verbose=False,
     )
 
     if verbose:
         print(f"Exported ESTNet as ONNX to: {onnx_path}")
 
     return onnx_path
+
+
+def _to_json_serializable_rms(rms: dict) -> dict:
+    """Convert RMS dict to a JSON-serializable python dict."""
+
+    def tensor_to_list(tensor):
+        if isinstance(tensor, torch.Tensor):
+            return tensor.cpu().numpy().tolist()
+        return tensor
+
+    rms_json = {}
+    for key, value in rms.items():
+        if hasattr(value, "mean") and hasattr(value, "var"):
+            rms_json[key] = {
+                "mean": tensor_to_list(value.mean),
+                "var": tensor_to_list(value.var),
+                "count": int(value.count) if hasattr(value, "count") else None,
+            }
+        elif isinstance(value, dict):
+            rms_json[key] = {
+                k: tensor_to_list(v) if isinstance(v, torch.Tensor) else v
+                for k, v in value.items()
+            }
+        elif isinstance(value, torch.Tensor):
+            rms_json[key] = tensor_to_list(value)
+        else:
+            rms_json[key] = value
+    return rms_json
+
+
+def _embed_rms_in_onnx_metadata(onnx_path: str, rms_json: dict) -> bool:
+    """
+    Embed RMS json into ONNX metadata_props.
+
+    Returns True on success, False if embedding is skipped/failed.
+    """
+    try:
+        import onnx
+    except Exception as e:
+        warnings.warn(f"ONNX package not available, skip RMS embedding: {e}")
+        return False
+
+    try:
+        model = onnx.load(onnx_path)
+        rms_payload = json.dumps(rms_json, separators=(",", ":"))
+
+        found = False
+        for prop in model.metadata_props:
+            if prop.key == "dreamwaq.rms":
+                prop.value = rms_payload
+                found = True
+                break
+        if not found:
+            new_prop = model.metadata_props.add()
+            new_prop.key = "dreamwaq.rms"
+            new_prop.value = rms_payload
+
+        onnx.save(model, onnx_path)
+        return True
+    except Exception as e:
+        warnings.warn(f"Failed to embed RMS into ONNX metadata: {e}")
+        return False
 
 
 def export_models(
@@ -337,7 +399,7 @@ def export_models(
     export_cenet: bool = False,
     export_estnet: bool = False,
     opset_version: int = 14,
-    export_rms: bool = True,
+    embed_rms_in_onnx: bool = True,
     verbose: bool = True,
 ) -> dict:
     """
@@ -352,7 +414,7 @@ def export_models(
         export_cenet: Whether to export CENet as ONNX (only if task uses CENet)
         export_estnet: Whether to export ESTNet as ONNX (only if task uses ESTNet)
         opset_version: ONNX opset version
-        export_rms: Whether to export RMS normalization parameters as a separate json file
+        embed_rms_in_onnx: Whether to embed RMS json into ONNX metadata (key: dreamwaq.rms)
         verbose: Print progress messages
 
     Returns:
@@ -390,6 +452,18 @@ def export_models(
     device = env.device
     example_input = torch.randn(1, input_dim).to(device)
 
+    # Load RMS once and reuse it for ONNX metadata embedding.
+    rms_json = None
+    if embed_rms_in_onnx:
+        try:
+            rms = ppo_runner.get_rms()
+            if rms is not None:
+                rms_json = _to_json_serializable_rms(rms)
+            elif verbose:
+                print("RMS not available (ppo_runner.get_rms returned None), skip ONNX metadata embed")
+        except Exception as e:
+            warnings.warn(f"Failed to get RMS for ONNX metadata embedding: {e}")
+
     # Export JIT
     if export_jit:
         try:
@@ -414,48 +488,17 @@ def export_models(
         except Exception as e:
             warnings.warn(f"Failed to export ONNX policy: {e}")
 
-    # Export RMS if requested
-    if export_rms:
+    # Embed RMS into ONNX metadata only (no standalone json file export)
+    if embed_rms_in_onnx and rms_json is not None and export_onnx and "onnx_policy" in results:
         try:
-            rms = ppo_runner.get_rms()
-            if rms is not None:
-                # Convert RMS data to JSON-serializable format
-                def tensor_to_list(tensor):
-                    if isinstance(tensor, torch.Tensor):
-                        return tensor.cpu().numpy().tolist()
-                    return tensor
-
-                rms_json = {}
-                for key, value in rms.items():
-                    if hasattr(value, 'mean') and hasattr(value, 'var'):
-                        # RMS object with mean and var attributes
-                        rms_json[key] = {
-                            'mean': tensor_to_list(value.mean),
-                            'var': tensor_to_list(value.var),
-                            'count': int(value.count) if hasattr(value, 'count') else None
-                        }
-                    elif isinstance(value, dict):
-                        # Nested dictionary
-                        rms_json[key] = {
-                            k: tensor_to_list(v) if isinstance(v, torch.Tensor) else v
-                            for k, v in value.items()
-                        }
-                    elif isinstance(value, torch.Tensor):
-                        rms_json[key] = tensor_to_list(value)
-                    else:
-                        rms_json[key] = value
-
-                rms_path = os.path.join(policies_dir, "rms.json")
-                with open(rms_path, 'w') as f:
-                    json.dump(rms_json, f, indent=2)
-                results["rms"] = rms_path
-                if verbose:
-                    print(f"Exported RMS to: {rms_path}")
-            else:
-                if verbose:
-                    print("RMS not available (ppo_runner.get_rms returned None)")
+            embedded = _embed_rms_in_onnx_metadata(results["onnx_policy"], rms_json)
+            if embedded:
+                results["onnx_policy_rms_metadata_key"] = "dreamwaq.rms"
+                print(
+                    f"Embedded RMS into ONNX metadata: {results['onnx_policy']} (key=dreamwaq.rms)"
+                )
         except Exception as e:
-            warnings.warn(f"Failed to export RMS: {e}")
+            warnings.warn(f"Failed to embed RMS into ONNX metadata: {e}")
 
     # Export CENet if requested and available
     if export_cenet:
@@ -494,6 +537,14 @@ def export_models(
                     verbose=verbose,
                 )
                 results["onnx_cenet"] = cenet_path
+
+                if embed_rms_in_onnx and rms_json is not None:
+                    embedded = _embed_rms_in_onnx_metadata(cenet_path, rms_json)
+                    if embedded:
+                        results["onnx_cenet_rms_metadata_key"] = "dreamwaq.rms"
+                        print(
+                            f"Embedded RMS into ONNX metadata: {cenet_path} (key=dreamwaq.rms)"
+                        )
             else:
                 if verbose:
                     print("CENet not available (ppo_runner.get_inference_cenet returned None)")

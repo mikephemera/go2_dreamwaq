@@ -113,7 +113,6 @@ def play(args):
             export_onnx=EXPORT_ONNX,
             export_cenet=EXPORT_CENET and CENET,  # only if task uses CENET
             export_estnet=EXPORT_ESTNET and ESTNET,  # only if task uses ESTNET
-            export_rms=EXPORT_RMS,
             opset_version=14,
             verbose=True,
         )
@@ -324,7 +323,6 @@ if __name__ == "__main__":
     EXPORT_ONNX = True  # export policy as ONNX
     EXPORT_CENET = True  # export CENet as ONNX if task uses it
     EXPORT_ESTNET = True  # export ESTNet as ONNX if task uses it
-    EXPORT_RMS = True  # export RMS normalization parameters as JSON
     RECORD_FRAMES = True  # render a video
     TRUE_VEL = True  # inference with true base velocity not estimated base velocity
     args = get_args()
