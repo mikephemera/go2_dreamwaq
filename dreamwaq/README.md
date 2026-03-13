@@ -273,6 +273,8 @@ python mini_test.py --task=go2_waq --num_envs 1
 | `cenet.onnx`  | ONNX        | `obs_history` | `[B, 225]`             | `est_vel`, `context_vec` | `[B, 3]`, `[B, 16]` | For WAQ deployment                                                                                  |
 | `estnet.onnx` | ONNX        | `obs_history` | `[B, 225]`             | `est_vel`                | `[B, 3]`            | For EST deployment                                                                                  |
 
+**RMS 归一化参数**：训练时使用的 RMS 归一化参数（obs_rms, true_vel_rms, privileged_obs_rms）已嵌入到 ONNX 文件的元数据中（metadata_props），键为 `dreamwaq.rms`。导出时默认启用该嵌入（`embed_rms_in_onnx=True`）
+
 `obs_history=225` comes from `len_obs_history(5) * num_observations(45)`.
 
 ### 2) Go2 task -> policy input dimension

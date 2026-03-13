@@ -260,9 +260,9 @@ class Go2RoughCfgWaqPPO(Go2RoughBaseCfgPPO):
         factor = 0.8
 
     class runner(Go2RoughBaseCfgPPO.runner):
-        obs_rms = True
-        privileged_obs_rms = True
-        true_vel_rms = True
+        obs_rms = False
+        privileged_obs_rms = False
+        true_vel_rms = False
         ada_boot = True
         vae_class_name = "CENet"
         run_name = "waq"
