@@ -32,6 +32,7 @@
 
 import os
 import copy
+import json
 import torch
 import warnings
 from typing import Optional, Tuple
@@ -336,6 +337,7 @@ def export_models(
     export_cenet: bool = False,
     export_estnet: bool = False,
     opset_version: int = 14,
+    export_rms: bool = True,
     verbose: bool = True,
 ) -> dict:
     """
@@ -350,6 +352,7 @@ def export_models(
         export_cenet: Whether to export CENet as ONNX (only if task uses CENet)
         export_estnet: Whether to export ESTNet as ONNX (only if task uses ESTNet)
         opset_version: ONNX opset version
+        export_rms: Whether to export RMS normalization parameters as a separate json file
         verbose: Print progress messages
 
     Returns:
@@ -410,6 +413,49 @@ def export_models(
             results["onnx_policy"] = onnx_path
         except Exception as e:
             warnings.warn(f"Failed to export ONNX policy: {e}")
+
+    # Export RMS if requested
+    if export_rms:
+        try:
+            rms = ppo_runner.get_rms()
+            if rms is not None:
+                # Convert RMS data to JSON-serializable format
+                def tensor_to_list(tensor):
+                    if isinstance(tensor, torch.Tensor):
+                        return tensor.cpu().numpy().tolist()
+                    return tensor
+
+                rms_json = {}
+                for key, value in rms.items():
+                    if hasattr(value, 'mean') and hasattr(value, 'var'):
+                        # RMS object with mean and var attributes
+                        rms_json[key] = {
+                            'mean': tensor_to_list(value.mean),
+                            'var': tensor_to_list(value.var),
+                            'count': int(value.count) if hasattr(value, 'count') else None
+                        }
+                    elif isinstance(value, dict):
+                        # Nested dictionary
+                        rms_json[key] = {
+                            k: tensor_to_list(v) if isinstance(v, torch.Tensor) else v
+                            for k, v in value.items()
+                        }
+                    elif isinstance(value, torch.Tensor):
+                        rms_json[key] = tensor_to_list(value)
+                    else:
+                        rms_json[key] = value
+
+                rms_path = os.path.join(policies_dir, "rms.json")
+                with open(rms_path, 'w') as f:
+                    json.dump(rms_json, f, indent=2)
+                results["rms"] = rms_path
+                if verbose:
+                    print(f"Exported RMS to: {rms_path}")
+            else:
+                if verbose:
+                    print("RMS not available (ppo_runner.get_rms returned None)")
+        except Exception as e:
+            warnings.warn(f"Failed to export RMS: {e}")
 
     # Export CENet if requested and available
     if export_cenet:

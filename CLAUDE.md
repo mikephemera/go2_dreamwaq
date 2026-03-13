@@ -78,6 +78,8 @@ python play.py --task=a1_waq --load_run=Sep04_14-24-54_waq --checkpoint=250
 
 For a close‑up view of a single agent, use `mini_test.py` with the same arguments.
 
+To export deployment-ready models with RMS normalization parameters saved separately (as JSON), set `EXPORT_POLICY = True` and related export flags in `dreamwaq/legged_gym/scripts/play.py`. RMS parameters will be saved to `exported/policies/rms.json` alongside the policy files.
+
 ### Testing
 
 A simple environment test exists:
