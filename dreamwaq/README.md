@@ -190,6 +190,10 @@ tensorboard --logdir=/mnt/datafiles/Work-syncfree/go2_dreamwaq/dreamwaq_logs
 docker start dreamwaq-run
 docker exec -it dreamwaq-run /bin/bash
 cd dreamwaq/legged_gym/legged_gym/scripts
+# Python 实际导入路径可能不是当前工作区，而是容器里旧副本。 go2_waq 的 RMS 开关取决于“被导入的那份配置文件”，不是你正在编辑器里打开的那份。有可能出现“源码里是 false，但 train_cfg.yaml 还是 true”
+# 运行check_dreamwaq_env.sh脚本可以检查 legged_gym 导入路径是否来自 /home/user/dreamwaq/legged_gym
+# 检查 go2_waq 的 obs_rms / privileged_obs_rms / true_vel_rms 是否全为 False
+# 带 --fix 时，自动重装 editable 包到挂载目录，再次校验，避免手工漏步骤。然后再训练
 # python train.py --task=go2_waq --headless
 python play.py --task=go2_waq --load_run=Mar09_15-10-01_waq --checkpoint=5000 #Need to embed RMS
 python play.py --task=go2_waq --load_run=Mar13_20-46-45_waq --checkpoint=5000 #No RMS
