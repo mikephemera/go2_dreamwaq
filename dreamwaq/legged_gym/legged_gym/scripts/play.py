@@ -114,9 +114,14 @@ def play(args):
             export_cenet=EXPORT_CENET and CENET,  # only if task uses CENET
             export_estnet=EXPORT_ESTNET and ESTNET,  # only if task uses ESTNET
             opset_version=14,
+            embed_rms_in_onnx=EMBED_RMS_IN_ONNX,
             verbose=True,
         )
-        print("\n********************Export results:********************\n", results, "\n\n")
+        print(
+            "\n********************Export results:********************\n",
+            results,
+            "\n\n",
+        )
 
     # logger setting
     if CENET or ESTNET:
@@ -323,6 +328,7 @@ if __name__ == "__main__":
     EXPORT_ONNX = True  # export policy as ONNX
     EXPORT_CENET = True  # export CENet as ONNX if task uses it
     EXPORT_ESTNET = True  # export ESTNet as ONNX if task uses it
+    EMBED_RMS_IN_ONNX = False  # embed RMS statistics in ONNX metadata
     RECORD_FRAMES = True  # render a video
     TRUE_VEL = True  # inference with true base velocity not estimated base velocity
     args = get_args()

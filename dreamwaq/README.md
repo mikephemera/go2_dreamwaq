@@ -191,7 +191,8 @@ docker start dreamwaq-run
 docker exec -it dreamwaq-run /bin/bash
 cd dreamwaq/legged_gym/legged_gym/scripts
 # python train.py --task=go2_waq --headless
-python play.py --task=go2_waq --load_run=Sep04_14-24-54_waq --checkpoint=250
+python play.py --task=go2_waq --load_run=Mar09_15-10-01_waq --checkpoint=5000 #Need to embed RMS
+python play.py --task=go2_waq --load_run=Mar13_20-46-45_waq --checkpoint=5000 #No RMS
 python mini_test.py --task=go2_waq --num_envs 1
 
 #cd out
