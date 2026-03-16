@@ -142,7 +142,7 @@ class Go2RoughCfgPPO(LeggedRobotCfgPPO):
         ada_boot = False
         run_name = "default"
         experiment_name = "rough_go2"
-        max_iterations = 5000
+        max_iterations = 5000*2
         save_interval = 500
 
 
@@ -260,9 +260,9 @@ class Go2RoughCfgWaqPPO(Go2RoughBaseCfgPPO):
         factor = 0.8
 
     class runner(Go2RoughBaseCfgPPO.runner):
-        obs_rms = False
-        privileged_obs_rms = False
-        true_vel_rms = False
+        obs_rms = True
+        privileged_obs_rms = True
+        true_vel_rms = True
         ada_boot = True
         vae_class_name = "CENet"
         run_name = "waq"

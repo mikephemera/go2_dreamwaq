@@ -328,7 +328,7 @@ if __name__ == "__main__":
     EXPORT_ONNX = True  # export policy as ONNX
     EXPORT_CENET = True  # export CENet as ONNX if task uses it
     EXPORT_ESTNET = True  # export ESTNet as ONNX if task uses it
-    EMBED_RMS_IN_ONNX = False  # embed RMS statistics in ONNX metadata
+    EMBED_RMS_IN_ONNX = True  # embed RMS statistics in ONNX metadata
     RECORD_FRAMES = True  # render a video
     TRUE_VEL = True  # inference with true base velocity not estimated base velocity
     args = get_args()
