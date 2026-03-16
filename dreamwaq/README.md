@@ -195,7 +195,8 @@ cd dreamwaq/legged_gym/legged_gym/scripts
 # 检查 go2_waq 的 obs_rms / privileged_obs_rms / true_vel_rms 是否全为 False
 # 带 --fix 时，自动重装 editable 包到挂载目录，再次校验，避免手工漏步骤。然后再训练
 # python train.py --task=go2_waq --headless
-python play.py --task=go2_waq --load_run=Mar09_15-10-01_waq --checkpoint=5000 #Need to embed RMS
+#python play.py --task=go2_waq --load_run=Mar09_15-10-01_waq --checkpoint=5000 #Need to embed RMS
+python play.py --task=go2_waq --load_run=Mar14_19-20-17_waq --checkpoint=10000 #Need to embed RMS
 python play.py --task=go2_waq --load_run=Mar14_16-57-53_waq --checkpoint=5000 #No RMS
 python mini_test.py --task=go2_waq --num_envs 1
 
