@@ -24,3 +24,4 @@ go2_gym_deploy/unitree_sdk2_bin/library/unitree_sdk2/build/
 *.mp4
 wandb/
 dreamwaq/asset/IsaacGym_Preview_4_Package.tar.gz
+CLAUDE_*.md
